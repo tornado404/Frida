@@ -1,0 +1,7 @@
+*.pyc
+*.out.tfevents.*
+*.mp4
+*.gif
+src/cache/colors_updated.npt
+src/cache/next_brush_strokes.csv
+*.npy
