@@ -3,6 +3,10 @@
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.rcParams['font.family'] = 'SimHei'  # 使用黑体
+matplotlib.rcParams['axes.unicode_minus'] = False  # 解决负号 '-' 显示为方块的问题
+
 from .macduff import find_macbeth, expected_colors
 
 '''

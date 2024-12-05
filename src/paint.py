@@ -7,6 +7,8 @@
 ##########################################################
 
 import sys
+import time
+
 import cv2
 import datetime
 import numpy as np
@@ -37,13 +39,14 @@ if __name__ == '__main__':
 
     if not opt.simulate:
         try:
+            painter.move_robot_to_safe_position()
             input('Make sure blank canvas is exposed. Press enter when you are ready for the paint planning to start. Use tensorboard to see which colors to paint.')
         except SyntaxError:
             pass
 
     # paint_planner_new(painter)
 
-    painter.to_neutral()
+    # painter.to_neutral()
 
     w_render = int(opt.render_height * (opt.CANVAS_WIDTH_M/opt.CANVAS_HEIGHT_M))
     h_render = int(opt.render_height)
@@ -84,6 +87,7 @@ if __name__ == '__main__':
         ################################
         ### Execute some of the plan ###
         ################################
+        consecutive_paints = 0
         for stroke_ind in range(min(len(painting),strokes_per_adaptation)):
             stroke = painting.pop()            
             
@@ -101,6 +105,9 @@ if __name__ == '__main__':
                 if consecutive_paints >= opt.how_often_to_get_paint or new_paint_color:
                     painter.get_paint(color_ind)
                     consecutive_paints = 0
+            elif consecutive_paints >= opt.how_often_to_get_paint:
+                    painter.get_paint(0)
+                    consecutive_paints = 0
 
             # Convert the canvas proportion coordinates to meters from robot
             x, y = stroke.transformation.xt.item()*0.5+0.5, stroke.transformation.yt.item()*0.5+0.5
@@ -110,11 +117,13 @@ if __name__ == '__main__':
 
             # Runnit
             stroke.execute(painter, x_glob, y_glob, stroke.transformation.a.item())
-
+            consecutive_paints += 1
         #######################
         ### Update the plan ###
         #######################
-        painter.to_neutral()
+        # painter.to_neutral()
+        painter.move_robot_to_safe_position()
+        time.sleep(15)
         current_canvas = painter.camera.get_canvas_tensor(h=h_render,w=w_render).to(device) / 255.
         painting.background_img = current_canvas
         painting, _ = optimize_painting(opt, painting, 

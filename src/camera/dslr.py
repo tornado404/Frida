@@ -9,6 +9,13 @@
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib
+
+from src.camera.dslr_gphoto import camera_init, capture_image
+
+matplotlib.rcParams['font.family'] = 'SimHei'  # 使用黑体
+matplotlib.rcParams['axes.unicode_minus'] = False  # 解决负号 '-' 显示为方块的问题
+
 import pickle
 import os
 
@@ -26,53 +33,61 @@ import glob
 
 class WebCam():
     def __init__(self, opt, debug=False):
-        # from camera.dslr_gphoto import *
-        self.camera = None
+        # 初始化相机
+        self.camera = camera_init()
+        self.camera.release()
+        # 调试模式
         self.debug = debug
+        # 画布变换矩阵
         self.H_canvas = None
 
+        # 是否有颜色信息
         self.has_color_info = False
 
+        # 颜色变换矩阵和灰度值
         self.color_tmat = None
         self.greyval = None
 
+        # 选项配置
         self.opt = opt
 
+
     def get_rgb_image(self, channels='rgb'):
-        # while True:
-        #     targ, img = capture_image(self.camera, channels, self.debug)
-        #     plt.imshow(img)
-        #     plt.show()
+        # 获取RGB图像
+        self.camera = camera_init()
+        target, img = capture_image(self.camera)
+        self.camera.release()
 
-        # return capture_image(self.camera, channels)
-        return None
+        if channels == 'rgb':
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)  # 转换为RGB格式
+        elif channels == 'bgr':
+            pass  # 保持BGR格式
+        else:
+            raise ValueError("Unsupported channel format: {}".format(channels))
 
-        # Dirty fix for image delay
-        # for i in range(4):
-        #     targ, img = capture_image(self.camera, channels)
-        # return targ, img
+        return target, img
 
-    # return RGB image, color corrected
+    # 返回RGB图像，经过颜色校正
     def get_color_correct_image(self, use_cache=False):
         if not self.has_color_info and self.opt.calib_colors:
             if not use_cache or not os.path.exists(os.path.join(self.opt.cache_dir, 'cached_color_calibration.pkl')):
                 try:
-                    input('No color info found. Beginning color calibration. Ensure you have placed Macbeth color checker in camera frame and press ENTER to continue.')
+                    input('未找到颜色信息。开始颜色校准。请确保已将Macbeth颜色检查器放置在相机视野内并按ENTER继续。')
                 except SyntaxError:
                     pass
                 completed_color_calib = False
                 while not completed_color_calib:
                     try:
                         self.init_color_calib()
-                        retake = input("Retake? y/[n]")
+                        retake = input("重新拍摄？y/[n]")
                         if not(retake[:1] == 'y' or retake[:1] == 'Y'):
                             completed_color_calib = True
                     except Exception as e:
                         print(e)
-                        try: input('could not calibrate. Move color checker and try again (press enter when ready)')
+                        try: input('无法校准。移动颜色检查器并重试（按回车键准备）')
                         except SyntaxError: pass 
                 try:    
-                    input("Remove color checker from frame, then press enter.")
+                    input("移除颜色检查器，然后按回车键。")
                 except SyntaxError:
                     pass
             else:
@@ -80,9 +95,10 @@ class WebCam():
                 self.color_tmat, self.greyval = params["color_tmat"], params["greyval"]
                 self.has_color_info = True
 
+
         path, img = self.get_rgb_image()
 
-        # has to be done for some reason
+        # 必须这样做
         if self.opt.calib_colors:
             return cv2.cvtColor(color_calib(img, self.color_tmat, self.greyval), cv2.COLOR_BGR2RGB)
         else:
@@ -92,7 +108,7 @@ class WebCam():
         if self.H_canvas is None:
             self.calibrate_canvas(use_cache)
         
-        # use corrected image if possible
+        # 如果可能，使用校正后的图像
         if (self.has_color_info and self.opt.calib_colors):
             img = self.get_color_correct_image(use_cache)
         else:
@@ -117,9 +133,10 @@ class WebCam():
     def calibrate_canvas(self, use_cache=False):
         img = self.get_color_correct_image(use_cache=use_cache)
         h = img.shape[0]
-        # original image shape is too wide of an aspect ratio compared to paper
+        # 原始图像的宽高比与纸张相比过宽
         # w = int(h * LETTER_WH_RATIO)
         w = int(h * (self.opt.CANVAS_WIDTH_M/self.opt.CANVAS_HEIGHT_M))
+        print(f"计算的宽度: {w}, 图像宽度: {img.shape[1]}")  # 添加调试信息
         assert(w <= img.shape[1])
 
         if use_cache and os.path.exists(os.path.join(self.opt.cache_dir, 'cached_H_canvas.pkl')):
@@ -137,7 +154,7 @@ class WebCam():
         for corner_num in range(4):
             x, y = self.canvas_points[corner_num]
 
-            # invert color to display
+            # 反转颜色以显示
             for u in range(-10, 10):
                 for v in range(-10, 10):
                     img_corners[y+u, x+v, :] = np.array((255, 255, 255)) - img_corners[y+u, x+v, :]
@@ -172,45 +189,45 @@ class WebCam():
             params = {"color_tmat":self.color_tmat, "greyval":self.greyval}
             pickle.dump(params, f)
 
-    # intrinsic calibration of the camera
+    # 相机的内参标定
     def init_distortion_calib(self, imgs_exist=False, calib_path='./calibration/', num_imgs=10):
-        # capture images if they do not exist
+        # 如果图像不存在，则捕获图像
         if not imgs_exist:
-            # capture set number of images, with i being editable to enable retaking
+            # 捕获设定数量的图像，i可编辑以启用重拍
             i = 0
             while i < num_imgs:
-                input("Maneuver checkerboard and press ENTER to capture image %d/%d." % ((i + 1), num_imgs))
+                input("移动棋盘格并按ENTER捕获图像 %d/%d." % ((i + 1), num_imgs))
                 _, img = self.get_rgb_image()
                 plt.imshow(img)
                 plt.draw()
                 plt.show(block=False)
                 plt.pause(0.01)
-                # retake if desired
-                retake = input("Retake? y/[n]")
+                # 如果需要重拍
+                retake = input("重拍？y/[n]")
                 plt.close()
                 if retake[:1] == 'y' or retake[:1] == 'Y':
-                    # do not save and do not increment
-                    print("Retaking.")
+                    # 不保存并且不递增
+                    print("重拍。")
                     continue
                 else:
                     fname = calib_path + str(i).zfill(3) + ".jpg"
                     plt.imsave(fname, img)
-                    print("Saved to " + fname + ".")
+                    print("保存到 " + fname + ".")
                     i += 1
 
         images = glob.glob(calib_path + "*.jpg")
         self.intrinsics = computeIntrinsic(images, (6, 8), (8, 8))
     
-    # undistort and crop using OpenCV
-    # From OpenCV tutorials
+    # 使用OpenCV进行去畸变和裁剪
+    # 来自OpenCV教程
     def undistort(self, img):
         if self.intrinsics is None:
-            input("No intrinsics matrix found. You must perform intrinsics calibration.")
+            input("未找到内参矩阵。您必须执行内参标定。")
             quit()
-        # undistort
+        # 去畸变
         mtx, dist, newCameraMtx, roi = self.intrinsics
         dst = cv2.undistort(img, mtx, dist, None, newCameraMtx)
-        # crop the image
+        # 裁剪图像
         x, y, w, h = roi
         dst = dst[y:y+h, x:x+w]
         return dst

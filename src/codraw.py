@@ -100,8 +100,8 @@ if __name__ == '__main__':
     painter = Painter(opt)
     opt = painter.opt
 
-    painter.to_neutral()
-    # painter.move_robot_to_safe_position()
+    # painter.to_neutral()
+    painter.move_robot_to_safe_position()
 
     w_render = int(opt.render_height * (opt.CANVAS_WIDTH_M / opt.CANVAS_HEIGHT_M))
     h_render = int(opt.render_height)
@@ -121,7 +121,7 @@ if __name__ == '__main__':
         ##################################
         ########## 人类回合 ###########
         ##################################
-        # painter.move_robot_to_safe_position()
+        painter.move_robot_to_safe_position()
         current_canvas = painter.camera.get_canvas_tensor() / 255.
         opt.writer.add_image('images/{}_0_canvas_start'.format(i), format_img(current_canvas), 0)
         current_canvas = Resize((h_render, w_render), antialias=True)(current_canvas)
@@ -216,8 +216,8 @@ if __name__ == '__main__':
             # 执行绘画
             stroke.execute(painter, x_glob, y_glob, stroke.transformation.a.item())
             consecutive_paints += 1
-        # painter.move_robot_to_safe_position()
-        # time.sleep(10)
+        painter.move_robot_to_safe_position()
+        time.sleep(10)
         current_canvas = painter.camera.get_canvas_tensor() / 255.
         opt.writer.add_image('images/{}_4_canvas_after_drawing'.format(i), format_img(current_canvas), 0)
         current_canvas = Resize((h_render, w_render), antialias=True)(current_canvas)

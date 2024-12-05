@@ -1,178 +1,228 @@
-# FRIDA <a href="https://twitter.com/FridaRobot" target="_blank"><img src="https://about.x.com/content/dam/about-twitter/x/brand-toolkit/logo-black.png.twimg.1920.png" height=32/></a>   <a href="https://www.tiktok.com/@frida_robot?lang=en" target="_blank"> <img src="https://sf-tb-sg.ibytedtos.com/obj/eden-sg/uhtyvueh7nulogpoguhm/tiktok-icon2.png" height=32/></a>
+# FRIDA 
 
-FRIDA (A Framework and Robotics Initiative for Developing Arts), is a robotic painting project developed at 
-The Robotics Institute, Carnegie Mellon University.
-This repository contains the code for two ICRA papers described below.
+FRIDA（一个用于发展艺术的框架和机器人倡议）是一个在卡内基梅隆大学机器人研究所开发的机器人绘画项目。
+fork自[原始工程](https://github.com/cmubig/Frida)，新增国产机械臂的绘画功能
 
-Maintained by Peter Schaldenbrand
+# 与原始项目差异
+1. 新增国产机械臂的绘画功能
+2. 在Windows平台运行，因此不使用gphoto2，改为使用OpenCV读取相机
 
+# 安装
 
+### 系统要求
 
+我们建议在具有Python 3.8和Ubuntu（我们使用20.04）的机器上运行FRIDA。FRIDA的核心功能使用CUDA，因此建议拥有8GB以上显存的NVIDIA GPU。由于CoFRIDA使用稳定扩散，建议在运行时拥有12GB以上显存，在训练CoFRIDA时拥有16GB显存。
 
-# [CoFRIDA: Self-Supervised Fine-Tuning for Human-Robot Co-Painting](https://pschaldenbrand.github.io/cofrida/)
-<b>Best Paper on Human-Robot Interaction, ICRA 2024</b>
-
-[Peter Schaldenbrand](https://pschaldenbrand.github.io/#about.html), [Gaurav Parmar](https://gauravparmar.com/), [Jun-Yan Zhu](https://www.cs.cmu.edu/~junyanz/), [Jim McCann](http://www.cs.cmu.edu/~jmccann/), and [Jean Oh](https://www.cs.cmu.edu/~./jeanoh/)
-
-A collaborative robotic painting assistant. Code for this paper is in the [frida/cofrida directory](https://github.com/cmubig/Frida/tree/master/cofrida).
-
-https://github.com/cmubig/Frida/assets/14282484/693cd7c1-68da-4847-8f68-95364acf14ee
-
-
-# FRIDA: A Collaborative Robot Painter with a Differentiable, Real2Sim2Real Simulated Planning Environment <a href="https://colab.research.google.com/github/pschaldenbrand/Frida/blob/master/Frida.ipynb" target="_blank"><img src="https://pbs.twimg.com/profile_images/1330956917951270912/DyIZtTA8_400x400.png" height=32/></a> <a href="https://arxiv.org/abs/2210.00664" target="_blank"><img src="https://pbs.twimg.com/media/EcglfCHU4AA6-yj.png" height=32/></a>
-
-<b>Finalist for Best Paper in Deployed Systems, ICRA 2023</b>
-
-[Peter Schaldenbrand](https://pschaldenbrand.github.io/#about.html), [Jean Oh](https://www.cs.cmu.edu/~./jeanoh/), [Jim McCann](http://www.cs.cmu.edu/~jmccann/)
-
-The Robotics Institute, Carnegie Mellon University
-
-FRIDA (a Framework and Robotics
-Initiative for Developing Arts) enables humans to
-produce paintings on canvases by collaborating with a painter
-robot using simple inputs such as language descriptions or
-images. FRIDA creates a fully differentiable simulation environment for
-painting using real data, adopting the idea of real to simulation to real
-(real2sim2real) in which it can plan and dynamically respond to stochasticity in the
-execution of that plan.
-<a href="https://twitter.com/FridaRobot" target="_blank">
-    <img src="https://about.x.com/content/dam/about-twitter/x/brand-toolkit/logo-black.png.twimg.1920.png" height=16/>
-    Follow FRIDA's Paintings on X/Twitter!
-</a>
-<a href="https://colab.research.google.com/github/pschaldenbrand/Frida/blob/master/Frida.ipynb" target="_blank">
-    <img src="https://pbs.twimg.com/profile_images/1330956917951270912/DyIZtTA8_400x400.png" height=16/>
-    Try our Colab Demo
-</a>
-<a href="https://arxiv.org/abs/2210.00664" target="_blank">
-    <img src="https://pbs.twimg.com/media/EcglfCHU4AA6-yj.png" height=16/>
-    Read our paper on ArXiv
-</a>
-
-![Depiction of FRIDA's capabilities and embodiment](./sample/github_figure.png)
-
-# Installation
-
-### System Requirements
-
-We recommend running FRIDA on a machine with Python 3.8 and Ubuntu (we use 20.04). FRIDA's core functionality uses CUDA, so it is recommended to have an NVIDIA GPU with 8+Gb vRAM. Because CoFRIDA uses Stable Diffusion, it is recommended to have 12+Gb for running and 16+Gb vRam for training CoFRIDA.
-
-### Code Installation
+### 代码安装
 
 ```
-git clone https://github.com/pschaldenbrand/Frida.git
+git clone https://github.com/cmubig/Frida.git
 
-# Install CUDA
+# 安装CUDA
 
-# We use Python 3.8
+# 我们使用Python 3.8
 
-# Install python packages with PIP
+# 使用PIP安装python包
 cd Frida
 pip3 install --r requirements.txt
 
-# (OR) Install python packages with Conda
+# （或）使用Conda安装python包
 cd Frida
 conda env create -n frida --file environment.yml
-# Beware, you may need to re-install torch/torchvision depending on your cuda version.
-# The following lines worked on our CUDA 12.2 system
+# 注意，您可能需要根据您的CUDA版本重新安装torch/torchvision。
+# 以下行在我们的CUDA 12.2系统上有效
 pip uninstall torch torchvision
 pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
 
-# Camera installation
-sudo apt install gphoto2 libgphoto2*
+ 
 
-# (optional) For training CoFRIDA, you'll need additional installation steps
+# （可选）要训练CoFRIDA，您需要额外的安装步骤
 cd Frida/src
 pip3 install git+https://github.com/facebookresearch/segment-anything.git
 wget https://dl.fbaipublicfiles.com/segment_anything/sam_vit_b_01ec64.pth
 git clone https://github.com/jmhessel/clipscore.git
 ```
 
-### Run with a robot
+### 与机器人一起运行
 
-We currently support UFactory XArm and Franka Emika robots. To use a Rethink Sawyer robot, please install the "ICRA 2023" tag version of the github repository.
+我们目前支持UFactory XArm和Franka Emika机器人。要使用Rethink Sawyer机器人，请安装github存储库的“ICRA 2023”标签版本。
 
-# Physical Setup `--materials_json`
+# 物理设置 `--materials_json`
 
-Below you can see a depiction of FRIDA's materials. The locations of these items are specified in meters from the robot base. They are specified in `--materials_json` command line argument. See `Frida/materials.json` for an example.
+下面您可以看到FRIDA材料的描述。这些物品的位置以米为单位从机器人基座指定。它们在`--materials_json`命令行参数中指定。请参见`Frida/materials.json`以获取示例。
 
-![Depiction of FRIDA's setup](./sample/materials_json_diagram.jpg)
+![FRIDA设置的描述](./sample/materials_json_diagram.jpg)
 
-# Equipment
+# 设备
 
-Here is a list of the equipment that we use and some links to purchase. Each item may be able to be swapped out with small changes to the code.
+以下是我们使用的设备列表以及一些购买链接。每个项目可能能够通过对代码进行小的更改来替换。
 
-- [Palettes for paint](https://www.amazon.com/gp/product/B07DKWTXWT/ref=ppx_yo_dt_b_search_asin_title?ie=UTF8&psc=1)
-- [8x10 inch canvas boards](https://www.amazon.com/gp/product/B07RNK7DJ7/ref=ppx_yo_dt_b_search_asin_title?ie=UTF8&psc=1)
-- [11x14 inch canvas boards](https://www.amazon.com/gp/product/B087F4F5DK/ref=ppx_yo_dt_b_search_asin_title?ie=UTF8&psc=1)
-- [Canon EOS Rebel T7i (With 18-55mm Lens and With Web Streaming Kit)](https://www.bhphotovideo.com/c/product/1714575-REG/canon_canon_eos_rebel_t7.html)
-- [Camera Desk Mount Stand](https://www.amazon.com/gp/product/B08LV7GZVB/ref=ppx_yo_dt_b_search_asin_title?ie=UTF8&th=1)
+- [绘画调色板](https://www.amazon.com/gp/product/B07DKWTXWT/ref=ppx_yo_dt_b_search_asin_title?ie=UTF8&psc=1)
+- [8x10英寸画布板](https://www.amazon.com/gp/product/B07RNK7DJ7/ref=ppx_yo_dt_b_search_asin_title?ie=UTF8&psc=1)
+- [11x14英寸画布板](https://www.amazon.com/gp/product/B087F4F5DK/ref=ppx_yo_dt_b_search_asin_title?ie=UTF8&psc=1)
+- [佳能EOS Rebel T7i（带18-55mm镜头和网络流媒体套件）](https://www.bhphotovideo.com/c/product/1714575-REG/canon_canon_eos_rebel_t7.html)
+- [摄像头桌面支架](https://www.amazon.com/gp/product/B08LV7GZVB/ref=ppx_yo_dt_b_search_asin_title?ie=UTF8&th=1)
 
-# Monitoring Painting Progress
+# 监控绘画进度
 
-We use tensorboard to monitor the progress of the painting.
+我们使用tensorboard来监控绘画的进度。
 
 ```
-# In another terminal, run this to view progress
+# 在另一个终端中运行此命令以查看进度
 tensorboard --logdir Frida/src/painting_log
 
-# Open browser and navigate to http://localhost:6006/
+# 打开浏览器并导航到 http://localhost:6006/
 ```
 
-# Arguments
+# 参数
 
 ```
 python3 paint.py 
-    [--simulate] Run in only simulation
-    [--robot] Which robot to use [franka|xarm]
-    [--xarm_ip] If using xarm, specify its IP address
-    [--materials_json path] Where JSON file specifying location of painting materials is
-    [--use_cache] Use cached calibration files. Necessary if --simulation
-    [--cache_dir path] Where the cached calibration files are stored if using them
-    [--ink] If using a marker or brush pen, use this so the robot knows it doesn't need paint
-    [--render_height int] Height of the sim. canvases. Decrease for CUDA memory errors. Default 256
-    [--num_papers int] Number of full sheets of paper to fill with training brush strokes (30 per paper)
-    [--n_colors int] Number of discrete paint colors to use
-    [--use_colors_from path] If specified, use K-means to get paint colors from this image. Default None
-    [--num_strokes int] The desired number of strokes in the painting
+    [--simulate] 仅在模拟中运行
+    [--robot] 使用哪个机器人 [franka|xarm]
+    [--xarm_ip] 如果使用xarm，请指定其IP地址
+    [--materials_json path] 指定绘画材料位置的JSON文件
+    [--use_cache] 使用缓存的校准文件。如果使用--simulation则必需
+    [--cache_dir path] 如果使用缓存文件，指定存储缓存文件的目录
+    [--ink] 如果使用标记或画笔，请使用此选项，以便机器人知道不需要油漆
+    [--render_height int] 模拟画布的高度。减少以避免CUDA内存错误。默认256
+    [--num_papers int] 要填充的完整纸张数量（每张纸30个笔画）
+    [--n_colors int] 要使用的离散油漆颜色数量
+    [--use_colors_from path] 如果指定，从此图像中使用K均值获取油漆颜色。默认无
+    [--num_strokes int] 绘画中所需的笔画数量
     [--objective [one or many text|clip_conv_los|l2|sketch|style]]
-    [--objective_data] See below
-    [--objective_weight] See below
-    [--num_augs int] Number of augmentations when using CLIP
-    [--lr_multiplier float] How much to scale the learning rates for the brush stroke parameter optimization algorithm
-    [--num_adaptations int] Number of times to pause robot execution to take a photo and replan
-    [--init_optim_iter int] Optimization iterations for initial plan
-    [--optim_iter int] Optimization iterations for each time FRIDA replans
+    [--objective_data] 见下文
+    [--objective_weight] 见下文
+    [--num_augs int] 使用CLIP时的增强数量
+    [--lr_multiplier float] 在画笔笔画参数优化算法中缩放学习率的比例
+    [--num_adaptations int] 暂停机器人执行以拍照和重新规划的次数
+    [--init_optim_iter int] 初始计划的优化迭代次数
+    [--optim_iter int] 每次FRIDA重新规划时的优化迭代次数
 ```
 
-# Objectives
+# 目标
 
-Frida can paint with a number of different objectives that can be used singularly or in weighted combination. They are used to compare the simulated painting plan and a target datum (image or text):
-- `l2` - Simple Euclidean distance is computed between the painting and target image
-- `clip_conv_loss` - Compare the CLIP Convolutional features extracted from the painting and target image
-- `clip_fc_loss` - Compare the CLIP embeddings of the painting and target image
-- `text` - Compare the CLIP embeddings of the paiting and the input text description
-- `style` - Compares style features from the painting and the target image
-- `sketch` - [Use `clip_conv_loss` instead right now] Converts the painting and target sketch into sketches then compares them
-- `emotion` - Guide the painting towards the following emotions: amusement, awe, contentment, excitement, anger, disgust, fear, sadness, something else. Specified in comma-sparated list of weights. e.g., half anger and fear: `--objective_data 0,0,0,0,.5,0,.5,0,0`
+Frida可以使用多种不同的目标进行绘画，这些目标可以单独使用或加权组合。它们用于比较模拟绘画计划和目标数据（图像或文本）：
+- `l2` - 计算绘画和目标图像之间的简单欧几里得距离
+- `clip_conv_loss` - 比较从绘画和目标图像中提取的CLIP卷积特征
+- `clip_fc_loss` - 比较绘画和目标图像的CLIP嵌入
+- `text` - 比较绘画和输入文本描述的CLIP嵌入
+- `style` - 比较绘画和目标图像的风格特征
+- `sketch` - [现在请使用`clip_conv_loss`] 将绘画和目标草图转换为草图，然后进行比较
+- `emotion` - 将绘画引导到以下情感：愉悦、敬畏、满足、兴奋、愤怒、厌恶、恐惧、悲伤、其他。以逗号分隔的权重列表指定。例如，半愤怒和恐惧：`--objective_data 0,0,0,0,.5,0,.5,0,0`
 
-Each objective specified must have a specified data file and weight given to it. Objectives can be specified for the initial optimization pass and for the full, final optimization. Here is an example of how to specify objectives where we have an initial objetive to make the painting look like `style_img.jpg` and then a final objective to have the style of `style_img.jpg` with the text description `"a frog ballerina"`:
+每个指定的目标必须有一个指定的数据文件和权重。目标可以为初始优化过程和完整的最终优化指定。以下是如何指定目标的示例，其中我们有一个初始目标使绘画看起来像`style_img.jpg`，然后一个最终目标使`style_img.jpg`的风格与文本描述“一个青蛙芭蕾舞者”相结合：
 ```
 cd Frida/src
 python3 paint.py --simulate --use_cache --cache_dir caches/sharpie_short_strokes
    --objective style text
-   --objective_data path/to/style_img.jpg  "a frog ballerina"
+   --objective_data path/to/style_img.jpg  "一个青蛙芭蕾舞者"
    --objective_weight 0.2  1.0
 ```
 
+## 致谢
+
+感谢：
+- 王顺宇为出色的弹簧夹持的马克笔末端执行器
+- [许佳晨](https://github.com/jxu12345)为编写FRIDA的感知代码
+- 希拉·塞克赫和杰西·丁在设计FRIDA规划算法的早期阶段提供的帮助
+- [维汉·米斯拉](https://github.com/convexalpha)为编写草图和音频损失函数
+- 坦梅·香卡尔在初始安装和修复Sawyer机器人方面的帮助
+- 凯文·张在Franka机器人安装方面的巨大帮助
 
 
+# uarm执行绘画测试
+## 仿真测试
+```
+cd Frida/src
+& D:/ProgramData/miniconda3/envs/frida/python.exe d:/code/Frida-master/src/codraw.py --simulate --use_cache --cache_dir src/caches/sharpie_test/  --cofrida_model skeeterman/CoFRIDA-Sharpie  --dont_retrain_stroke_model --objective style text --objective_data src/caches/sharpie_test/1.png 
 
-## Acknowledgements
 
-Thank you to: 
-- Sunyu Wang for the brilliant, spring-loaded Sharpie holding end-effector
-- [Jia Chen Xu](https://github.com/jxu12345) for writing FRIDA's perception code
-- Heera Sekhr and Jesse Ding for their help in the early stages of designing FRIDA's planning algorithms
-- [Vihaan Misra](https://github.com/convexalpha) for writing a sketch and audio loss functions.
-- Tanmay Shankar for his help with initial installation and fixing the Sawyer robot
-- Kevin Zhang for his incredible help with installation with Franka robot
+& D:/ProgramData/miniconda3/envs/frida/python.exe d:/code/Frida-master/src/paint.py --simulate --use_cache --cache_dir src/caches/sharpie_short_strokes --objective style text --objective_data src/caches/sharpie_test/1.png   "一个青蛙芭蕾舞者" --objective_weight 0.2  1.0
+```
+
+
+## 自定义机械臂需要执行如下操作
+1. 修改`materials.json`文件的各个参数值，使新机械臂可以正常绘画
+2. 执行`src/paint.py` 测试机械臂是否正常
+
+## 自定义相机需要执行如下操作
+1. 执行src/test_camera.py 在初始阶段需要你预先打印一张棋盘格N*N 放置到机械臂绘画区域，并保证相机可以看到它
+2. 将看到：弹窗拍摄到棋盘格画面 —— 执行：按照提示进行操作，选择棋盘格相应正方形区域的四角，这将校准相机畸变、位置等参数
+3. 将看到：弹窗显示拍摄到的画面 —— 确认：物理空间中画布区域都可以正常拍摄到
+
+``` 
+
+
+## 测试机械臂实际绘画
+
+& D:/ProgramData/miniconda3/envs/frida/python.exe d:/code/Frida-master/src/paint.py
+cd Frida/src
+& D:/ProgramData/miniconda3/envs/frida/python.exe d:/code/Frida-master/src/paint.py --use_cache --cache_dir src/caches/sharpie_test --objective style text --objective_data  src/caches/sharpie_test/1.png  "mountain" --objective_weight 0.2  1.0
+
+& D:/ProgramData/miniconda3/envs/frida/python.exe d:/code/Frida-master/src/paint.py --use_cache --cache_dir src/caches/sharpie_test --objective_data  src/caches/sharpie_test/1.png  "mountain" --objective_weight 0.2  1.0   --num_strokes 40 
+
+& D:/ProgramData/miniconda3/envs/frida/python.exe d:/code/Frida-master/src/paint.py --use_cache --cache_dir src/caches/sharpie_test --objective_data  src/caches/sharpie_test/1.png  --objective_weight 0.2  1.0   --num_strokes 40 
+```
+
+# 测试相机
+```
+& D:/ProgramData/miniconda3/envs/frida/python.exe d:/code/Frida-master/src/test_camera.py  --use_cache --cache_dir D:/code/Frida-master/src/caches/sharpie_test --objective_data  src/caches/sharpie_test/1.png  "mountain" --objective_weight 0.2  1.0   --num_strokes 4
+```
+
+# 交互式绘画
+使用cofrida预训练模型
+```
+
+& D:/ProgramData/miniconda3/envs/frida/python.exe d:/code/Frida-master/src/codraw.py --use_cache --cache_dir src/caches/sharpie_test/ --cofrida_model skeeterman/CoFRIDA-Sharpie --dont_retrain_stroke_model  --brush_length 0.02 --ink --lr_multiplier 0.7 --num_strokes 30 
+ 
+```
+## 交互流程示例
+ 
+``` 
+机器人已移动到安全位置。
+
+请随意绘画，然后完成后按回车。  
+
+如果您希望机器人绘画，请输入描述然后按回车。如果您不希望机器人绘画，请什么都不输入。
+:masterpiece, (best quality), highly detailed, ultra-detailed, white background, (minimal black), a Chinese mountain top, (ink painting style:1.2), misty atmosphere, (traditional brushstroke texture), serene, (high contrast), (flowing lines), subtle shading, intricate details, vast emptiness, (classic Chinese aesthetic), balance of light and shadow.
+CoFRIDA 生成选项: 100%|██████████████████████████████████████████████| 6/6 [00:07<00:00,  1.17s/it] 
+
+```
+
+# 仿真版本的执行命令
+
+## 仿真版本的 Paint 执行命令
+在激活的 Conda 环境中，您可以使用以下命令运行仿真版本的 `paint`：
+```bash
+# 激活 Conda 环境
+conda activate frida
+
+# 运行仿真版本的 paint
+python src/paint.py --simulate --use_cache --cache_dir src/caches/sharpie_short_strokes --objective style text --objective_data src/caches/sharpie_test/1.png "a mountain" --objective_weight 0.2 1.0 --init_optim_iter 400 --num_strokes 800 --n_colors 2
+
+python src/paint.py --simulate --use_cache --cache_dir src/caches/sharpie_short_strokes --lr_multiplier 0.4 --num_strokes 800 --n_colors 2 --objective clip_conv_loss --objective_data src/caches/sharpie_test/1.png --objective_weight 1.0
+
+
+python src/paint.py --simulate --render_height 256 --use_cache --cache_dir src/caches/small_brush --dont_retrain_stroke_model --objective clip_conv_loss --objective_data D:/code/Frida-master/src/caches/Pittsburgh_FeaturedImg-1.jpg --objective_weight 1.0 --lr_multiplier 0.4 --num_strokes 800 --optim_iter 400 --n_colors 30
+python src/paint.py --robot mycobot280pi --render_height 256 --use_cache --cache_dir src/caches/small_brush --dont_retrain_stroke_model --objective clip_conv_loss --objective_data D:/code/Frida-master/src/caches/Pittsburgh_FeaturedImg-1.jpg --objective_weight 1.0 --lr_multiplier 0.4 --num_strokes 800 --optim_iter 400 --n_colors 30
+
+```
+
+## 仿真版本的 CoDraw 执行命令
+在激活的 Conda 环境中，您可以使用以下命令运行仿真版本的 `codraw`：
+```bash
+# 激活 Conda 环境
+conda activate frida
+
+# 运行仿真版本的 codraw
+python src/codraw.py --use_cache --cache_dir src/caches/sharpie_test/ --cofrida_model skeeterman/CoFRIDA-Sharpie --dont_retrain_stroke_model --brush_length 0.02 --ink --lr_multiplier 0.7 --num_strokes 30  --simulate
+
+python src/codraw.py --use_cache --cache_dir src/caches/sharpie_short_strokes/ --cofrida_model skeeterman/CoFRIDA-Sharpie --dont_retrain_stroke_model --robot xarm --brush_length 0.2 --ink --lr_multiplier 0.7 --num_strokes 120 --simulate
+
+python src/codraw.py --simulate --use_cache --cache_dir src/caches/sharpie_short_strokes --cofrida_model skeeterman/CoFRIDA-Sharpie --lr_multiplier 0.4 --num_strokes 800 --n_colors 2 --objective clip_conv_loss --objective_data src/caches/sharpie_test/1.png --objective_weight 1.0
+
+
+masterpiece, (best quality), highly detailed, ultra-detailed, white background, (minimal black), a Chinese mountain top, (ink painting style:1.2), misty atmosphere, (traditional brushstroke texture), serene, (high contrast), (flowing lines), subtle shading, intricate details, vast emptiness, (classic Chinese aesthetic), balance of light and shadow.
+```
+

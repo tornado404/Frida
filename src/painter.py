@@ -197,6 +197,25 @@ class Painter():
                 y = 0.1
             self.move_to_trajectories([[0,y,self.opt.INIT_TABLE_Z]], [None])
 
+    def move_robot_to_safe_position(self):
+        ''' 移动机器人到不影响相机拍照的位置 '''
+        # 这里可以添加具体的移动逻辑，例如设置机器人的位置
+        # painter.robot.move_to(x, y)  # 示例代码，具体实现取决于您的机器人API
+        x = 0
+        if not self.opt.simulate:
+            # self.robot.fa.reset_joints()  # 重置关节
+            y = 0.4
+            if self.opt.robot == 'franka':
+                y = 0.4  # Franka 机器人的 y 位置
+            elif self.opt.robot == 'xarm':
+                y = 0.1  # XArm 机器人的 y 位置
+            elif self.opt.robot == 'mycobot280pi':
+                x, y = 0.18, 0.25
+
+            self.move_to_trajectories([[x, y, self.opt.INIT_TABLE_Z]], [None])  # 移动到指定轨迹
+        time.sleep(3)
+        print("机器人已移动到安全位置。")  # 提示用户机器人已移动
+
     def move_to_trajectories(self, positions, orientations):
         for i in range(len(orientations)):
             if orientations[i] is None:
