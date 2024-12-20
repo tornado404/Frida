@@ -467,3 +467,40 @@ class BrushStroke(nn.Module):
             stroke_bend=torch.zeros(1), 
             stroke_alpha=torch.zeros(1)
         )
+
+    def to_dict(self):
+        return {
+            'stroke_length': self.stroke_length.detach().cpu().item(),  # 笔画长度
+            'stroke_z': self.stroke_z.detach().cpu().item(),  # 笔画的 Z 轴位置
+            'stroke_bend': self.stroke_bend.detach().cpu().item(),  # 笔画的弯曲程度
+            'stroke_alpha': self.stroke_alpha.detach().cpu().item(),  # 笔画的透明度
+            'color_transform': self.color_transform.detach().cpu().numpy().tolist(),  # 颜色变换
+            'a': self.transformation.a.item(),  # 旋转角度
+            'xt': self.transformation.xt.item(),  # X 方向的平移
+            'yt': self.transformation.yt.item(),  # Y 方向的平移
+        }
+
+    @classmethod
+    def from_dict(cls, data, opt, device='cuda'):
+        """
+        从字典中恢复 BrushStroke 对象
+        :param data: 包含 BrushStroke 属性的字典
+        :param opt: 选项对象，用于初始化
+        :param device: 设备类型
+        :return: 恢复的 BrushStroke 对象
+        """
+        stroke_length = torch.tensor(data['stroke_length'], device=device)  # 笔画长度
+        stroke_z = torch.tensor(data['stroke_z'], device=device)  # 笔画的 Z 轴位置
+        stroke_bend = torch.tensor(data['stroke_bend'], device=device)  # 笔画的弯曲程度
+        stroke_alpha = torch.tensor(data['stroke_alpha'], device=device)  # 笔画的透明度
+        color_transform = torch.tensor(data['color_transform'], device=device)  # 颜色变换
+        a = data['a']  # 旋转角度
+        xt = data['xt']  # X 方向的平移
+        yt = data['yt']  # Y 方向的平移
+
+        # 创建 BrushStroke 对象
+        stroke = cls(opt, stroke_length=stroke_length, stroke_z=stroke_z,
+                     stroke_bend=stroke_bend, stroke_alpha=stroke_alpha,
+                     color=color_transform, a=a, xt=xt, yt=yt, device=device)
+        
+        return stroke

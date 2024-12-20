@@ -23,6 +23,7 @@ from paint_utils3 import canvas_to_global_coordinates
 from robot import *
 from camera.dslr import WebCam, SimulatedWebCam
 
+from loguru import logger
 
 PERPENDICULAR_QUATERNION = np.array([1.77622069e-04,   9.23865441e-01,  -3.82717408e-01,  -1.73978366e-05])
 
@@ -60,8 +61,10 @@ class Painter():
             self.robot = Franka(debug=True)
         elif opt.robot == "xarm":
             self.robot = XArm(opt.xarm_ip, debug=True)
-        elif opt.robot == "mycobot280pi":
+        elif opt.robot == "ultraarm340":
             self.robot = UltraArm340(debug=True)
+        elif opt.robot == "mycobot280pi":
+            self.robot = Cobot280(debug=True)
         elif opt.robot == None:
             self.robot = SimulatedRobot(debug=True)
         if opt.simulate:
@@ -75,8 +78,10 @@ class Painter():
         while True: 
             try:
                 if not self.opt.simulate:
+                    logger.info("使用相机WebCam")
                     self.camera = WebCam(opt)
                 else:
+                    logger.info("使用模拟相机SimulatedWebCam")
                     self.camera = SimulatedWebCam(opt)
                 break
             except Exception as e:
@@ -98,13 +103,13 @@ class Painter():
             self.Z_CANVAS = params['Z_CANVAS']
             self.Z_MAX_CANVAS = params['Z_MAX_CANVAS']
         else:
-            print('\nBrush tip calibration\n')
-            print('Brush should be at very center of the canvas.')
-            print('Use keys "w" and "s" to set the brush to just barely touch the canvas.')
+            print('\n画笔尖校准\n')
+            print('画笔应该位于画布的正中心。')
+            print('使用 "w" 和 "s" 键将画笔设置为刚好接触画布。')
             p = canvas_to_global_coordinates(0.5, 0.5, self.opt.INIT_TABLE_Z, self.opt)
             self.Z_CANVAS = self.set_height(p[0], p[1], self.opt.INIT_TABLE_Z)[2]
 
-            print('Move the brush to the lowest point it should go again with "w" and "s" keys.')
+            print('再次使用 "w" 和 "s" 键将画笔移动到它应该去的最低点。')
             self.Z_MAX_CANVAS = self.set_height(p[0], p[1], self.Z_CANVAS)[2]
             self.hover_above(p[0], p[1], self.Z_CANVAS, method='direct')
 
@@ -187,14 +192,16 @@ class Painter():
 
 
     def to_neutral(self, speed=0.4):
-        # Initial spot
+        # 移动到初始位置
         if not self.opt.simulate:
-            # self.robot.fa.reset_joints()
+            # self.robot.fa.reset_joints()  # 重置关节
             y = 0.4 
             if self.opt.robot == 'franka':
                 y = 0.4
             elif self.opt.robot == 'xarm':
                 y = 0.1
+            elif self.opt.robot == 'mycobot280pi':
+                y = 0.18
             self.move_to_trajectories([[0,y,self.opt.INIT_TABLE_Z]], [None])
 
     def move_robot_to_safe_position(self):
@@ -274,6 +281,8 @@ class Painter():
         positions = []
         positions.append([self.opt.WATER_POSITION[0],self.opt.WATER_POSITION[1],self.opt.WATER_POSITION[2]+self.opt.HOVER_FACTOR])
         positions.append([self.opt.WATER_POSITION[0],self.opt.WATER_POSITION[1],self.opt.WATER_POSITION[2]])
+
+        # 生成5个带有噪声的水面位置
         for i in range(5):
             noise = np.clip(np.random.randn(2)*0.01, a_min=-.02, a_max=0.02)
             positions.append([self.opt.WATER_POSITION[0]+noise[0],self.opt.WATER_POSITION[1]+noise[1],self.opt.WATER_POSITION[2]])
@@ -282,12 +291,15 @@ class Painter():
         self.move_to_trajectories(positions, orientations)
 
     def rub_brush_on_rag(self):
+        """
+        在抹布上擦拭画笔，以去除多余的颜料或水分。
+        """
         self.move_to(self.opt.RAG_POSTITION[0],self.opt.RAG_POSTITION[1],self.opt.RAG_POSTITION[2]+self.opt.HOVER_FACTOR, speed=0.3)
         positions = []
         positions.append([self.opt.RAG_POSTITION[0],self.opt.RAG_POSTITION[1],self.opt.RAG_POSTITION[2]+self.opt.HOVER_FACTOR])
         positions.append([self.opt.RAG_POSTITION[0],self.opt.RAG_POSTITION[1],self.opt.RAG_POSTITION[2]])
         for i in range(5):
-            noise = np.clip(np.random.randn(2)*0.06, a_min=-.06, a_max=0.06)
+            noise = np.clip(np.random.randn(2)*0.01, a_min=-.01, a_max=0.01)
             positions.append([self.opt.RAG_POSTITION[0]+noise[0],self.opt.RAG_POSTITION[1]+noise[1],self.opt.RAG_POSTITION[2]])
         positions.append([self.opt.RAG_POSTITION[0],self.opt.RAG_POSTITION[1],self.opt.RAG_POSTITION[2]+self.opt.HOVER_FACTOR])
         orientations = [None]*len(positions)
@@ -330,6 +342,7 @@ class Painter():
         '''
         
         # import getch
+        import msvcrt as getch
 
         curr_z = z
         curr_x = x
@@ -343,26 +356,25 @@ class Painter():
         print("Esc to quit.")
 
         while True:
-            # c = getch.getch()
-            c = '\x1b'
+            c = getch.getch()
 
             if c:
-                # print(c)
+                print("input key is ", c)
                 #catch Esc or ctrl-c
-                if c in ['\x1b', '\x03']:
+                if c in ['\x1b', '\x03', b'\x1b', b'\x03']:
                     return curr_x, curr_y, curr_z
                 else:
-                    if c=='w':
+                    if c == b'w':  # 使用字节类型
                         curr_z += move_amount
-                    elif c=='s':
+                    elif c == b's':  # 使用字节类型
                         curr_z -= move_amount
-                    elif c=='d':
+                    elif c == b'd':  # 使用字节类型
                         curr_x += move_amount
-                    elif c=='a':
+                    elif c == b'a':  # 使用字节类型
                         curr_x -= move_amount
-                    elif c=='r':
+                    elif c == b'r':  # 使用字节类型
                         curr_y += move_amount
-                    elif c=='f':
+                    elif c == b'f':  # 使用字节类型
                         curr_y -= move_amount
                     else:
                         print('Use arrow keys up and down. Esc when done.')

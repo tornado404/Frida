@@ -11,6 +11,8 @@
 # adapted from code at https://github.com/jim-easterbrook/python-gphoto2/blob/master/examples/capture-image.py
 
 import os
+import time
+
 # import gphoto2 as gp
 from matplotlib import pyplot as plt
 import cv2
@@ -44,8 +46,10 @@ def capture_image(camera):
         return None, None  # 返回与 capture_image_bak 一致的值
 
     # 假设我们将图像保存到临时文件中
-    target = os.path.join(os.getcwd(), 'captured_image.jpg')  # 设定一个临时文件路径
-    cv2.imwrite(target, frame)  # 使用 OpenCV 保存图像
+    # 时间戳
+    timestr = time.strftime("%Y%m%d-%H%M%S")
+    target = os.path.join(os.getcwd(), f'captured_image{timestr}.jpg')  # 设定一个临时文件路径
+    # cv2.imwrite(target, frame)  # 使用 OpenCV 保存图像
 
     return target, frame  # 返回文件路径和捕获的图像帧
 

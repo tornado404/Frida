@@ -3,6 +3,8 @@ import os
 import numpy as np
 import time
 
+from loguru import logger
+
 from brush_stroke import euler_from_quaternion
 
 ##########################################################
@@ -795,7 +797,7 @@ class UltraArm340(Robot):
             # [x,y,z,rx,ry,rz]��坐标值，长度为6, x,y,z的范围为-280mm ~ 280mm，rx,ry,yz的范围为-314  ~ 314
 
             formated_coord = [item[1] * 1000, item[0] * 1000, item[2] * 1000]
-            logger.debug("formated_item is {}", formated_coord)
+            # logger.debug("formated_item is {}", formated_coord)
             if formated_coord[0] < 150 or formated_coord[0] > 350 or formated_coord[1] < -200 or formated_coord[
                 1] > 200:
                 logger.error("机械臂超出画布范围，机械臂坐标为：{}", formated_coord)
@@ -836,6 +838,133 @@ class UltraArm340(Robot):
         """
         # 这里可以实现图像捕获的功能
         pass
+
+
+class Cobot280(Robot):
+    '''
+        UltraArm 机器人的低级动作功能实现。
+        Low-level action functionality of the UltraArm robot.
+    '''
+
+    def __init__(self, host="192.168.31.8", port=9000, debug=False):
+        """
+        初始化 UltraArm 机器人。
+        该函数用于建立与机械臂的socket连接
+        host: 机械臂的IP地址
+        port: 机械臂的端口号
+        """
+        self.debug_bool = debug
+        self.cobot = self.init_cobot(host, port)
+
+
+    def init_cobot(self, host, port):
+        """
+        初始化机械臂,
+        过程中灯会闪烁, 提示机械臂初始化完成
+        """
+        from pymycobot import MyCobotSocket
+        # 默认使用端口 9000
+        return MyCobotSocket(host, port)
+
+    def debug(self, msg):
+        if self.debug_bool:
+            print(msg)
+
+    def reset_joints(self):
+        """
+        重置 UltraArm 到其初始关节位置。
+        """
+        self.cobot.power_on()
+        self.cobot.set_fresh_mode(0)
+        self.cobot.set_color(0, 0, 255)  # 蓝灯亮
+        logger.info("上电所有舵机from 1 to 6 focus all servos")
+        for i in range(1, 7):
+            self.cobot.focus_servo(i)
+
+        # 打开自由移动模式
+        self.cobot.set_free_mode(1)
+        time.sleep(1)  # 等2秒
+        self.cobot.set_color(255, 0, 0)  # 红灯亮
+        # # 打开夹爪
+        # self.cobot.set_gripper_state(0, 70)
+        # time.sleep(2)  # 等2秒
+        # 关闭自由移动模式
+        self.cobot.set_free_mode(0)
+        self.cobot.sync_send_angles([0, 0, 0, 0, 0, -45], 20)
+        # 初始化完成, 绿灯亮
+        self.cobot.set_color(0, 255, 0)
+
+    def grab_pen(self):
+        self.cobot.send_angles([0, -90, 0, 0, 0, -45], 50)
+        # grab pen
+        # 打开夹爪
+        self.cobot.set_gripper_state(0, 70)
+        time.sleep(5)
+        # 关闭夹爪
+        self.cobot.set_gripper_state(1, 70)
+
+    def good_morning_robot(self):
+        """
+        启动 UltraArm 机器人并准备好执行任务。
+        """
+        self.debug("启动 UltraArm 机器人...")
+        # 重置 UltraArm 到其初始关节位置
+        self.reset_joints()
+        self.grab_pen()
+
+    def good_night_robot(self):
+        """
+        关闭 UltraArm 机器人并断开连接。
+        """
+        self.debug("关闭 UltraArm 机器人...")
+        self.cobot.stop()
+        self.cobot.power_off()
+
+    def go_to_cartesian_pose(self, positions, orientations, speed=50):
+        """
+        将机器人移动到指定的笛卡尔坐标位置和方向。
+
+        参数:
+            positions (np.array(n,3)) : 目标��置的数组，包含n个点的x, y, z坐标（单位：米）。
+            orientations (np.array(n,4)) : 目标方向的数组，包含n个点的四元数（x, y, z, w）。
+            speed (int) : 移动速度，默认为50（单位：mm/s）。
+
+        示例输入:
+            positions = np.array([[0.5, 0.2, 0.1], [0.6, 0.3, 0.2]])  # 两个目标位置
+            orientations = np.array([[0, 0, 0, 1], [0, 0, 0.7071, 0.7071]])  # 两个目标方向（四元数）
+
+        示例返回值:
+            None  # 此函数没有返回值，机器人将直接移动到指定位置和方向。
+        """
+        logger.info("positions: {}, orientations: {}".format(positions, orientations))
+        positions, orientations = np.array(positions), np.array(orientations)
+        if len(positions.shape) == 1:
+            positions = positions[None, :]
+            orientations = orientations[None, :]
+
+        # 移动到指定位置
+        # self.cobot.send_coords
+        for i, item in enumerate(positions):
+            # sync_send_coords(coords, speed, mode)
+            # [x,y,z]表示的是机械臂头部在空间中的位置（该坐标系为直角坐标系），[rx,ry,rz]表示的是机械臂头部在该点的姿态（该坐标系为欧拉坐标）
+            # [x,y,z,rx,ry,rz]��坐标值，长度为6, x,y,z的范围为-280mm ~ 280mm，rx,ry,yz的范围为-314  ~ 314
+            converted_angles = validate_and_convert_angles(orientations[i])
+            formated_item = [item[0] * 1000, item[1] * 1000, item[2] * 1000, *converted_angles]
+            print("formated_item is ", formated_item)
+            self.cobot.send_coords(formated_item, speed, 0)
+
+    def move_to_joint_positions(self, joint_angles, speed=100):
+        """
+        移动 UltraArm 到指定的关节角度。
+
+        :param joint_angles: 关节角度列表
+        :param speed: 移动速度
+        """
+        self.cobot.send_angles(joint_angles, speed)
+
+
+
+
 
 
 def validate_and_convert_angles(angles):

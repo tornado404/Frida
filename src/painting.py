@@ -19,6 +19,7 @@ class Painting(nn.Module):
         self.background_img = background_img
 
         if self.background_img.shape[1] == 3: # add alpha channel
+            print("Adding alpha channel to background image")
             t =  torch.zeros((1,1,self.background_img.shape[2],self.background_img.shape[3])).to(device)
             # t[:,:3] = self.background_img
             self.background_img = torch.cat((self.background_img, t), dim=1)

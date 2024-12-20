@@ -6,6 +6,7 @@
 ################ All rights reserved. ####################
 ##########################################################
 
+
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
@@ -69,6 +70,7 @@ class WebCam():
 
     # 返回RGB图像，经过颜色校正
     def get_color_correct_image(self, use_cache=False):
+        print("Getting color-corrected image")
         if not self.has_color_info and self.opt.calib_colors:
             if not use_cache or not os.path.exists(os.path.join(self.opt.cache_dir, 'cached_color_calibration.pkl')):
                 try:

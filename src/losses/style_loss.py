@@ -6,6 +6,9 @@ import torch
 from torch import nn
 import matplotlib.pyplot as plt
 import matplotlib
+matplotlib.rcParams['font.family'] = 'SimHei'  # 使用黑体
+matplotlib.rcParams['axes.unicode_minus'] = False  # 解决负号 '-' 显示为方块的问题
+
 import requests
 from PIL import Image
 import io
