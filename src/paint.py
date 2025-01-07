@@ -31,6 +31,8 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 #mengtign  --use_cache --cache_dir caches/sss_test --simulate --ink --render_height 256 --dont_retrain_stroke_model --num_strokes 100 --objective clip_conv_loss --objective_data inputs/4.jpg --objective_weight 1.0 --init_optim_iter 2000 --lr_multiplier 2.0
 # --simulate --render_height 256 --use_cache --cache_dir caches/sharpie_short_strokes --dont_retrain_stroke_model --objective clip_conv_loss --objective_data caches/1.png --robot mycobot280pi --objective_weight 1.0 --lr_multiplier 0.4 --num_strokes 100 --optim_iter 400 --n_colors 1
 # --render_height 256 --use_cache --cache_dir caches/small_brush_test --dont_retrain_stroke_model --objective clip_conv_loss --objective_data caches/1.png --robot mycobot280pi --objective_weight 1.0 --lr_multiplier 0.4 --num_strokes 100 --optim_iter 800 --n_colors 1
+
+# D:\ProgramData\miniconda3\envs\frida\python.exe D:\code\frida\src\paint.py --robot mycobot280pi --materials_json materials_ink.json  --use_cache --cache_dir src/caches/cobot280 --ink --render_height 256 --dont_retrain_stroke_model --num_strokes 100 --objective clip_conv_loss --objective_data src/inputs/4.jpg --objective_weight 1.0 --init_optim_iter 400 --lr_multiplier 2.0
 if __name__ == '__main__':
     opt = Options()
     opt.gather_options()
@@ -43,12 +45,20 @@ if __name__ == '__main__':
     painter = Painter(opt)
     opt = painter.opt # This necessary?
 
-    # if not opt.simulate:
-    #     try:
-    #         painter.dip_brush_in_water()
-    #         # input('Make sure blank canvas is exposed. Press enter when you are ready for the paint planning to start. Use tensorboard to see which colors to paint.')
-    #     except SyntaxError:
-    #         pass
+    # for i in range(2):
+    #     print('获取第', i, '种颜色')
+    #     painter.get_paint(i)
+    # painter.rub_brush_on_rag()
+    #
+    #
+    # exit(0)
+    # painter.to_neutral()
+    if not opt.simulate:
+        try:
+            painter.dip_brush_in_water()
+            input('Make sure blank canvas is exposed. Press enter when you are ready for the paint planning to start. Use tensorboard to see which colors to paint.')
+        except SyntaxError:
+            pass
 
     # paint_planner_new(painter)
 
@@ -64,9 +74,11 @@ if __name__ == '__main__':
 
     color_palette = None
     if opt.use_colors_from is not None:
-        color_palette = get_colors(cv2.resize(cv2.imread(opt.use_colors_from)[:,:,::-1], (256, 256)), 
-                n_colors=opt.n_colors).to(device)
+        color_palette = get_colors(cv2.resize(cv2.imread(opt.use_colors_from)[:,:,::-1], (256, 256)), n_colors=opt.n_colors).to(device)
         opt.writer.add_image('paint_colors/using_colors_from_input', save_colors(color_palette), 0)
+    dark_black = [0, 0, 0]  # 浓黑色
+    light_ink = [50, 50, 50]  # 淡墨色
+    color_palette = torch.tensor([dark_black, light_ink], dtype=torch.float32).to(device)
 
     current_canvas = painter.camera.get_canvas_tensor(h=h_render,w=w_render).to(device) / 255.
 
@@ -80,15 +92,17 @@ if __name__ == '__main__':
         painting, color_palette = optimize_painting(opt, painting,
                     optim_iter=opt.init_optim_iter, color_palette=color_palette)
 
-        import json
-        with open('painting_data.json', 'w', encoding='utf-8') as f:
-            json.dump({
-                'painting': {
-                    'brush_strokes': [painting.pop().to_dict() for _ in range(len(painting.brush_strokes))],  # 使用 pop 遍历并序列化 brush_strokes
-                },
-            }, f, ensure_ascii=False)
+    # import json
+    #
+    # with open('painting_data.json', 'w', encoding='utf-8') as f:
+    #     json.dump({
+    #         'painting': {
+    #             'brush_strokes': [painting.pop().to_dict() for _ in range(len(painting.brush_strokes))],
+    #             # 使用 pop 遍历并序列化 brush_strokes
+    #         },
+    #     }, f, ensure_ascii=False)
 
-    # # 从文件恢复 painting
+    # 从文件恢复 painting
     from src.brush_stroke import BrushStroke
     with open('painting_data.json', 'r', encoding='utf-8') as f:  # 读取文件
         import json
@@ -116,7 +130,7 @@ if __name__ == '__main__':
         ### Execute some of the plan ###
         ################################
         consecutive_paints = 0
-
+        paint_index = 1
         for stroke_ind in range(min(len(painting),strokes_per_adaptation)):
             stroke = painting.pop()            
             
@@ -134,9 +148,15 @@ if __name__ == '__main__':
                 if consecutive_paints % opt.how_often_to_get_paint == 0 or new_paint_color:
                     painter.get_paint(color_ind)
                     painter.rub_brush_on_rag()
-            elif consecutive_paints % opt.how_often_to_get_paint == 0:
-                painter.get_paint(0)
-                painter.rub_brush_on_rag()
+                    consecutive_paints = 0
+
+            # elif consecutive_paints % opt.how_often_to_get_paint == 0:
+            #     # 蘸墨
+            #     paint_index = (paint_index + 1) % 2
+            #     painter.get_paint(paint_index)
+            #     # 擦拭画笔
+            #     painter.rub_brush_on_rag()
+            #     consecutive_paints = 0
 
             # Convert the canvas proportion coordinates to meters from robot
             x, y = stroke.transformation.xt.item()*0.5+0.5, stroke.transformation.yt.item()*0.5+0.5

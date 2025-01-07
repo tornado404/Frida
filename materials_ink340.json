@@ -1,15 +1,16 @@
 {
-    "WATER_POSITION":[-0.172, 0.150, 0.095],
-    "RAG_POSTITION":[0.2, 0.05, 0.087],
-    "PALLETTE_POSITION":[0.175, 0.135, 0.087],
-    "PAINT_DIFFERENCE":0.05,
-    "INIT_TABLE_Z":0.081,
+    "WATER_POSITION":[0.19, 0.155, 0.019],
+    "RAG_POSTITION":[-0.185, 0.155, 0.017],
+    "PALLETTE_POSITION":[0.185, 0.25, 0.017],
+    "PAINT_DIFFERENCE":0,
+    "INIT_TABLE_Z":0.05,
     "CANVAS_WIDTH_M":0.12,
-    "CANVAS_HEIGHT_M":0.1,
-    "CANVAS_POSITION":[0, 0.18],
+    "CANVAS_HEIGHT_M":0.12,
+    "CANVAS_POSITION":[0, 0.2],
     "MAX_ALPHA":0,
     "MIN_STROKE_LENGTH":0.005,
     "MAX_STROKE_LENGTH":0.01,
+    "MIN_STROKE_Z":-0.00259,
     "MAX_BEND":0.002,
     "kv_describe": {
         "WATER_POSITION": "清水盒的位置 yxz",
@@ -23,7 +24,7 @@
         "MAX_ALPHA": "最大透明度",
         "MIN_STROKE_LENGTH": "最小笔画长度",
         "MAX_STROKE_LENGTH": "最大笔画长度",
-        "MIN_STROKE_Z": "在生成或处理笔画时的最小深度下压比例，stroke_z处于 Z_MAX_CANVAS + （Z_CANVAS-Z_MAX_CANVAS）*（MIN_STROKE_Z，0.95）",
+        "MIN_STROKE_Z": "在生成或处理笔画时的最小深度或Z轴坐标值",
         "MAX_BEND": "最大弯曲度"
     }
 }

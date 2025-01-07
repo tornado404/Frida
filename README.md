@@ -162,7 +162,10 @@ cd Frida/src
 
 & D:/ProgramData/miniconda3/envs/frida/python.exe d:/code/Frida-master/src/paint.py --use_cache --cache_dir src/caches/sharpie_test --objective_data  src/caches/sharpie_test/1.png  "mountain" --objective_weight 0.2  1.0   --num_strokes 40 
 
-& D:/ProgramData/miniconda3/envs/frida/python.exe d:/code/Frida-master/src/paint.py --use_cache --cache_dir src/caches/sharpie_test --objective_data  src/caches/sharpie_test/1.png  --objective_weight 0.2  1.0   --num_strokes 40 
+& D:/ProgramData/miniconda3/envs/frida/python.exe d:/code/Frida-master/src/paint.py --use_cache --cache_dir src/caches/sharpie_test --objective_data  src/caches/sharpie_test/1.png  --objective_weight 0.2  1.0   --num_strokes 40
+
+& D:/ProgramData/miniconda3/envs/frida/python.exe d:/code/frida/src/test_camera.py --robot mycobot280pi --use_cache --cache_dir src/caches/cobot280 --ink --render_height 256 --dont_retrain_stroke_model --num_strokes 100 --objective clip_conv_loss --objective_data inputs/4.jpg --objective_weight 1.0 --init_optim_iter 400 --lr_multiplier 2.0
+ 
 ```
 
 # 测试相机
@@ -206,6 +209,7 @@ python src/paint.py --simulate --use_cache --cache_dir src/caches/sharpie_short_
 
 python src/paint.py --simulate --render_height 256 --use_cache --cache_dir src/caches/small_brush --dont_retrain_stroke_model --objective clip_conv_loss --objective_data D:/code/Frida-master/src/caches/Pittsburgh_FeaturedImg-1.jpg --objective_weight 1.0 --lr_multiplier 0.4 --num_strokes 800 --optim_iter 400 --n_colors 30
 python src/paint.py --robot mycobot280pi --render_height 256 --use_cache --cache_dir src/caches/small_brush --dont_retrain_stroke_model --objective clip_conv_loss --objective_data D:/code/Frida-master/src/caches/Pittsburgh_FeaturedImg-1.jpg --objective_weight 1.0 --lr_multiplier 0.4 --num_strokes 800 --optim_iter 400 --n_colors 30
+
 
 ```
 

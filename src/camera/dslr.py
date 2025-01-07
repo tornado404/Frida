@@ -6,13 +6,12 @@
 ################ All rights reserved. ####################
 ##########################################################
 
-
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
 
-from src.camera.dslr_gphoto import camera_init, capture_image
+from .dslr_gphoto import camera_init
 
 matplotlib.rcParams['font.family'] = 'SimHei'  # 使用黑体
 matplotlib.rcParams['axes.unicode_minus'] = False  # 解决负号 '-' 显示为方块的问题
@@ -29,6 +28,7 @@ from camera.harris import find_corners
 from camera.intrinsic_calib import computeIntrinsic
 import glob
 
+from .dslr_gphoto import *
 
 # https://github.com/IntelRealSense/librealsense/blob/master/wrappers/python/examples/opencv_viewer_example.py
 
@@ -135,9 +135,11 @@ class WebCam():
     def calibrate_canvas(self, use_cache=False):
         img = self.get_color_correct_image(use_cache=use_cache)
         h = img.shape[0]
+        print(f"cached img shape: {img.shape}")
         # 原始图像的宽高比与纸张相比过宽
         # w = int(h * LETTER_WH_RATIO)
         w = int(h * (self.opt.CANVAS_WIDTH_M/self.opt.CANVAS_HEIGHT_M))
+
         print(f"计算的宽度: {w}, 图像宽度: {img.shape[1]}")  # 添加调试信息
         assert(w <= img.shape[1])
 
@@ -148,7 +150,6 @@ class WebCam():
             # plt.title('Hopefully this looks like just the canvas')
             # plt.show()
             return
-
 
         self.canvas_points = find_corners(img, show_search=self.debug)
 

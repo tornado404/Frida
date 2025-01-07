@@ -366,7 +366,7 @@ class SimulatedRobot(Robot, object):
     def good_night_robot(self):
         pass
 
-    def go_to_cartesian_pose(self, position, orientation):
+    def go_to_cartesian_pose(self, position, orientation, move_by_joint=False):
         pass
 
 
@@ -766,7 +766,7 @@ class UltraArm340(Robot):
         """
         self.debug("关闭 UltraArm 机器人...")
 
-    def go_to_cartesian_pose(self, positions, orientations, speed=50):
+    def go_to_cartesian_pose(self, positions, orientations, move_by_joint=False, speed=50):
         """
         将机器人移动到指定的笛卡尔坐标位置和方向。
         uarm的坐标系是yxz
@@ -874,28 +874,24 @@ class Cobot280(Robot):
         """
         重置 UltraArm 到其初始关节位置。
         """
-        self.cobot.power_on()
-        self.cobot.set_fresh_mode(0)
         self.cobot.set_color(0, 0, 255)  # 蓝灯亮
-        logger.info("上电所有舵机from 1 to 6 focus all servos")
-        for i in range(1, 7):
-            self.cobot.focus_servo(i)
-
-        # 打开自由移动模式
-        self.cobot.set_free_mode(1)
+        from pymycobot.common import ProtocolCode
+        self.cobot._mesg(ProtocolCode.SET_FRESH_MODE, 0)
+        self.cobot._mesg(ProtocolCode.SET_FREE_MODE, 1)
         time.sleep(1)  # 等2秒
         self.cobot.set_color(255, 0, 0)  # 红灯亮
-        # # 打开夹爪
-        # self.cobot.set_gripper_state(0, 70)
-        # time.sleep(2)  # 等2秒
-        # 关闭自由移动模式
-        self.cobot.set_free_mode(0)
-        self.cobot.sync_send_angles([0, 0, 0, 0, 0, -45], 20)
-        # 初始化完成, 绿灯亮
+        # self.cobot.sync_send_angles([0, 0, 0, 0, 0, -45], 10)
+        # self.cobot.sync_send_coords([0.0, 170.0, 125.0, 180.0, -0.0, -45.0], 10, 0)
         self.cobot.set_color(0, 255, 0)
 
+    def move_to_position(self, positions, speed=50):
+        self.cobot.send_coords(positions, speed, 0)
+
+    def get_position(self):
+        return self.cobot.get_coords()
+
     def grab_pen(self):
-        self.cobot.send_angles([0, -90, 0, 0, 0, -45], 50)
+        # self.cobot.send_angles([0, -90, 0, 0, 0, -45], 50)
         # grab pen
         # 打开夹爪
         self.cobot.set_gripper_state(0, 70)
@@ -905,22 +901,21 @@ class Cobot280(Robot):
 
     def good_morning_robot(self):
         """
-        启动 UltraArm 机器人并准备好执行任务。
+        启动 MyCobot280 机器人并准备好执行任务。
         """
-        self.debug("启动 UltraArm 机器人...")
+        self.debug("启动 MyCobot280 机器人...")
         # 重置 UltraArm 到其初始关节位置
         self.reset_joints()
-        self.grab_pen()
 
     def good_night_robot(self):
         """
         关闭 UltraArm 机器人并断开连接。
         """
-        self.debug("关闭 UltraArm 机器人...")
+        self.debug("关闭 MyCobot280 机器人...")
         self.cobot.stop()
-        self.cobot.power_off()
+        # self.cobot.power_off()
 
-    def go_to_cartesian_pose(self, positions, orientations, speed=50):
+    def go_to_cartesian_pose(self, positions, orientations, move_by_joint=False, speed=50):
         """
         将机器人移动到指定的笛卡尔坐标位置和方向。
 
@@ -936,22 +931,31 @@ class Cobot280(Robot):
         示例返回值:
             None  # 此函数没有返回值，机器人将直接移动到指定位置和方向。
         """
-        logger.info("positions: {}, orientations: {}".format(positions, orientations))
         positions, orientations = np.array(positions), np.array(orientations)
         if len(positions.shape) == 1:
             positions = positions[None, :]
             orientations = orientations[None, :]
 
-        # 移动到指定位置
-        # self.cobot.send_coords
         for i, item in enumerate(positions):
             # sync_send_coords(coords, speed, mode)
-            # [x,y,z]表示的是机械臂头部在空间中的位置（该坐标系为直角坐标系），[rx,ry,rz]表示的是机械臂头部在该点的姿态（该坐标系为欧拉坐标）
-            # [x,y,z,rx,ry,rz]��坐标值，长度为6, x,y,z的范围为-280mm ~ 280mm，rx,ry,yz的范围为-314  ~ 314
-            converted_angles = validate_and_convert_angles(orientations[i])
+            # item的格式为 [x,y,z,rx,ry,rz]
+            # [x,y,z]表示的是机械臂头部在空间中的位置（该坐标系为直角坐标系），
+            # [rx,ry,rz]表示的是机械臂头部在该点的姿态（该坐标系为欧拉坐标）
+            # x	-281.45 ~ 281.45
+            # y	-281.45 ~ 281.45
+            # z	-70 ~ 412.67
+            # 180, 0, -45 为 rx ry rz 的默认值  rz 166 2
+            converted_angles = quaternion_to_euler_degrees(orientations[i])
+            converted_angles[-1] = converted_angles[-1] + 60
             formated_item = [item[0] * 1000, item[1] * 1000, item[2] * 1000, *converted_angles]
-            print("formated_item is ", formated_item)
-            self.cobot.send_coords(formated_item, speed, 0)
+            if not self.safe_position_check(formated_item):
+                logger.warning("机械臂超出安全范围，机械臂坐标为：{}", formated_item)
+            logger.info("formated_item is {}", formated_item)
+            if move_by_joint:
+                # 0-非线性（默认），1-直线运动
+                self.cobot.send_coords(formated_item, speed, 0)
+            else:
+                self.cobot.send_coords(formated_item, speed, 0)
 
     def move_to_joint_positions(self, joint_angles, speed=100):
         """
@@ -962,32 +966,57 @@ class Cobot280(Robot):
         """
         self.cobot.send_angles(joint_angles, speed)
 
+    def safe_position_check(self, item):
+        """
+        item: [x, y, z, rx, ry, rz]
+        检查item的xyz构成的臂展是否在280mm范围内
+        z的范围不能低于10mm
+        """
+        # if item[0] < -172 or item[0] > 172 or item[1] < 100 or item[1] > 280:
+        #     # 画布本身限制
+        #     return False
+        # 机械臂限制
+        dis = np.sqrt(item[0] ** 2 + item[1] ** 2)
+        if dis > 280:
+            return False
+        # z的范围不能低于10mm
+        if item[2] < 10:
+            return False
+        return True
 
 
-
-
-
-def validate_and_convert_angles(angles):
+def quaternion_to_euler_degrees(quaternion):
     """
-    校验并转换输入的角度信息为有效的欧拉坐标
-    如果输入的角度不是有效的欧拉角，则进行转换
-    支持四元数输入
+    将四元数转换为角度制欧拉角，并保留小数点后一位。
+
+    参数:
+        quaternion (list or np.array): 四元数 [w, x, y, z]
+
+    返回:
+        list: 角度制欧拉角 [rx, ry, rz]，每个值保留小数点后1位
     """
-    # 检查输入是否为四元数
-    if len(angles) == 4:
-        return convert_quaternion_to_euler(angles)
+    # 四元数转换为弧度制欧拉角
+    w, x, y, z = quaternion
+    t0 = 2.0 * (w * x + y * z)
+    t1 = 1.0 - 2.0 * (x * x + y * y)
+    rx = np.arctan2(t0, t1)  # 绕 X 轴旋转
 
-    # 假设 angles 是一个包含 [rx, ry, rz] 的列表或数组
-    if len(angles) != 3:
-        raise ValueError("角度信息必须包含三个值 [rx, ry, rz]")
-    angles_rad = np.radians(angles) * 100
+    t2 = 2.0 * (w * y - z * x)
+    t2 = np.clip(t2, -1.0, 1.0)  # 防止超出 [-1, 1]
+    ry = np.arcsin(t2)  # 绕 Y 轴旋转
 
-    # 校验角度范围（例如，确保在 -π 到 π 之间）
-    for angle in angles_rad:
-        if angle < -314 or angle > 314:
-            raise ValueError("角度超出有效范围 [-314, 314]")
+    t3 = 2.0 * (w * z + x * y)
+    t4 = 1.0 - 2.0 * (y * y + z * z)
+    rz = np.arctan2(t3, t4)  # 绕 Z 轴旋转
 
-    return angles_rad
+    # 转为角度制
+    euler_angles_radians = [rx, ry, rz]
+    euler_angles_degrees = np.degrees(euler_angles_radians)
+
+    # 保留小数点后 1 位
+    euler_angles_degrees = np.round(euler_angles_degrees, 1)
+
+    return euler_angles_degrees
 
 
 def convert_quaternion_to_euler(quaternion):
@@ -1001,3 +1030,11 @@ def convert_quaternion_to_euler(quaternion):
     yaw = np.arctan2(2.0 * (w * z + x * y), 1.0 - 2.0 * (y * y + z * z))
 
     return np.array([roll, pitch, yaw])
+
+
+if __name__ == "__main__":
+    mc = Cobot280()
+    mc.good_morning_robot()
+
+    mc.good_night_robot()
+

@@ -1,0 +1,27 @@
+tqdm==4.66.1
+requests==2.31.0
+packaging==23.2
+Pillow==9.5.0
+opencv-python==4.9.0.80
+scikit-image==0.21.0
+scikit-learn==1.4.0
+matplotlib==3.10.0
+protobuf~=3.20
+tsp-solver==0.1
+pyrealsense2==2.54.2.5684
+tensorboardX==2.1
+# pip install torch==2.2.0 torchvision==0.17.0 torchaudio==2.2.0 --index-url https://download.pytorch.org/whl/cu121
+# python -c "import torch; print(torch.__version__); print(torch.cuda.is_available())"
+torchgeometry==0.1.2
+kornia==0.7.1
+colour-science==0.4.1
+ftfy==6.1.3
+regex==2023.12.25
+git+https://github.com/openai/CLIP.git
+librosa==0.10.1
+timm==0.9.12
+transformers==4.37.2
+diffusers==0.18.1
+accelerate==0.26.1
+whisper==1.1.10
+xarm==0.0.4

@@ -16,7 +16,7 @@ class Options(object):
     def __init__(self):
         self.initialized = False
         self.opt = {}
-
+        self.INIT_TABLE_Z = 0.55
         self.CANVAS_WIDTH_PIX  = None # set these after taking a picture
         self.CANVAS_HEIGHT_PIX = None
 
@@ -25,21 +25,21 @@ class Options(object):
 
     def initialize(self, parser):
         # Main parameters
-        parser.add_argument("--robot", type=str, default='franka', help='Which robot to use "franka" "xarm" or "sawyer"')
+        parser.add_argument("--robot", type=str, default='mycobot280pi', help='Which robot to use "franka" "xarm" or "sawyer"')
         parser.add_argument("--xarm_ip", type=str, default='192.168.1.176', help='IP address of XArm.')
 
-        parser.add_argument('--use_cache', action='store_true')
+        parser.add_argument('--use_cache', action='store_true', default=True, help='Use cached data for faster planning.')
         parser.add_argument("--materials_json", type=str, 
-            default='../materials.json', help='path to json file specifying material locations.')
+            default='../materials_ink.json', help='path to json file specifying material locations.')
         parser.add_argument("--cache_dir", type=str,
-            default='./caches/cache_6_6_cvpr', help='Where to store cached files.')
+            default='./caches/cobot280', help='Where to store cached files.')
         parser.add_argument('--simulate', action='store_true', help="Don't execute. Just plan without a robot. Requires already cached data.")
         parser.add_argument('--ink', action='store_true')
         parser.add_argument('--paint_from_image', action='store_true')
 
         # Color parameters
         parser.add_argument('--calib_colors', action='store_true', help='Use this to calibrate colors using MacBeth color checker')
-        parser.add_argument('--n_colors', default=12, type=int, help='Number of colors of paint to use')
+        parser.add_argument('--n_colors', default=2, type=int, help='Number of colors of paint to use')
         parser.add_argument('--use_colors_from', type=str, default=None, help="Get the colors from this image. \
                 None if you want the colors to come from the optimized painting.")
         parser.add_argument('--bin_size', type=int, default=3000)
@@ -49,7 +49,7 @@ class Options(object):
 
         # Stroke Library Parameters
         parser.add_argument('--num_papers', default=4, type=int, help='How papers of strokes to paint for stroke modelling data.')
-        parser.add_argument('--dont_retrain_stroke_model', action='store_true')
+        parser.add_argument('--dont_retrain_stroke_model', action='store_true', default=True)
         parser.add_argument('--brush_length', type=float, default=None)
 
         # Planning Parameters
@@ -59,8 +59,8 @@ class Options(object):
         parser.add_argument('--fill_weight', type=float, default=0.0, help="Encourage strokes to fill canvas.")
 
         # Optimization Parameters
-        parser.add_argument('--objective', nargs='*', type=str, help='text|style|clip_conv_loss|l2|clip_fc_loss')
-        parser.add_argument('--objective_data', nargs='*', type=str)
+        parser.add_argument('--objective', nargs='*', type=str, help='text|style|clip_conv_loss|l2|clip_fc_loss', default=['clip_conv_loss'])
+        parser.add_argument('--objective_data', nargs='*', type=str, default=['./inputs/4.jpg'])
         parser.add_argument('--objective_weight', nargs='*', type=float, default=1.0)
         parser.add_argument('--init_optim_iter', type=int, default=400)
         parser.add_argument('--optim_iter', type=int, default=150)
@@ -69,7 +69,7 @@ class Options(object):
         parser.add_argument('--num_augs', type=int, default=30)
 
         # Painting Parameters
-        parser.add_argument('--how_often_to_get_paint', type=int, default=18)
+        parser.add_argument('--how_often_to_get_paint', type=int, default=5)
 
         # Logging Parameters
         parser.add_argument("--tensorboard_dir", type=str,

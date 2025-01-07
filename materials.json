@@ -1,16 +1,16 @@
 {
-    "WATER_POSITION":[0.19, 0.155, 0.019],
-    "RAG_POSTITION":[-0.185, 0.155, 0.017],
-    "PALLETTE_POSITION":[0.185, 0.25, 0.017],
+    "WATER_POSITION":[0.172, 0.193, 0.067],
+    "RAG_POSTITION":[-0.172, 0.193, 0.067],
+    "PALLETTE_POSITION":[0.172, 0.220, 0.067],
     "PAINT_DIFFERENCE":0,
-    "INIT_TABLE_Z":0.05,
+    "INIT_TABLE_Z":0.07,
     "CANVAS_WIDTH_M":0.12,
     "CANVAS_HEIGHT_M":0.12,
     "CANVAS_POSITION":[0, 0.2],
     "MAX_ALPHA":0,
     "MIN_STROKE_LENGTH":0.005,
     "MAX_STROKE_LENGTH":0.01,
-    "MIN_STROKE_Z":-0.00259,
+    "MIN_STROKE_Z":0.1,
     "MAX_BEND":0.002,
     "kv_describe": {
         "WATER_POSITION": "清水盒的位置 yxz",
@@ -18,13 +18,13 @@
         "PALLETTE_POSITION": "6*2墨水盒颜料板的左下角位置 yxz",
         "PAINT_DIFFERENCE": "调色板上颜料之间的间距",
         "INIT_TABLE_Z": "画布的初始桌面高度",
-        "CANVAS_WIDTH_M": "画布的宽度,对应340的y轴范围",
-        "CANVAS_HEIGHT_M": "画布的高度,对应340的x轴范围",
+        "CANVAS_WIDTH_M": "画布的宽度,对应340的y轴范围,280的x轴范围",
+        "CANVAS_HEIGHT_M": "画布的高度,对应340的x轴范围,280的y轴范围",
         "CANVAS_POSITION": "画布中心点的位置 yx",
         "MAX_ALPHA": "最大透明度",
         "MIN_STROKE_LENGTH": "最小笔画长度",
         "MAX_STROKE_LENGTH": "最大笔画长度",
-        "MIN_STROKE_Z": "在生成或处理笔画时的最小深度或Z轴坐标值",
+        "MIN_STROKE_Z": "在生成笔画换算前时的最小深度比例，取值通常为0.1~0.2",
         "MAX_BEND": "最大弯曲度"
     }
 }

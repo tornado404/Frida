@@ -2,7 +2,6 @@ import copy
 import math
 import torch
 from torch import nn
-import torchgeometry
 import torchvision.transforms as T
 from torchvision.transforms import InterpolationMode 
 bicubic = InterpolationMode.BICUBIC
@@ -122,6 +121,7 @@ class RigidBodyTransformation(nn.Module):
         M = rigid_body_transform(self.a[0], self.xt[0]*(w/2), self.yt[0]*(h/2), anchor_x, anchor_y)
         with warnings.catch_warnings(): # suppress annoing torchgeometry warning
             warnings.simplefilter("ignore")
+            import torchgeometry
             return torchgeometry.warp_perspective(x, M, dsize=(h,w))
 
 class BrushStroke(nn.Module):
@@ -147,6 +147,7 @@ class BrushStroke(nn.Module):
 
 
         if stroke_length is None: stroke_length=torch.rand(1)*self.MAX_STROKE_LENGTH
+        # stroke_z 的值会被限制在 MIN_STROKE_Z 和 0.95 之间，确保笔画的 Z 轴位置始终在安全范围内。
         if stroke_z is None: stroke_z = torch.rand(1).clamp(self.MIN_STROKE_Z, 0.95)
         if stroke_alpha is None: stroke_alpha=(torch.rand(1)*2-1)*self.MAX_ALPHA
         if stroke_bend is None: stroke_bend = (torch.rand(1)*2 - 1) * self.MAX_BEND
@@ -343,6 +344,7 @@ class BrushStroke(nn.Module):
                             + 3*t**2*p3
                 dx_dt = deriv_cubic_bez(p0[0], p1[0], p2[0], p3[0], t)
                 dy_dt = deriv_cubic_bez(p0[1], p1[1], p2[1], p3[1], t)
+                #  RuntimeWarning: invalid value encountered in scalar divide
                 dy_dx = dy_dt / dx_dt
                 curve_angle = np.arctan(dy_dx)
                 # print('curve_angle', curve_angle)

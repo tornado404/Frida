@@ -106,6 +106,7 @@ class Painter():
             print('\n画笔尖校准\n')
             print('画笔应该位于画布的正中心。')
             print('使用 "w" 和 "s" 键将画笔设置为刚好接触画布。')
+
             p = canvas_to_global_coordinates(0.5, 0.5, self.opt.INIT_TABLE_Z, self.opt)
             self.Z_CANVAS = self.set_height(p[0], p[1], self.opt.INIT_TABLE_Z)[2]
 
@@ -150,6 +151,12 @@ class Painter():
 
         if self.camera is not None:
             self.camera.debug = True
+            # move pen to another position, and put paper to canvas, then press enter
+            try:
+                self.dip_brush_in_water()
+                # input('Move pen to another position, and put paper to canvas, then press enter.')
+            except SyntaxError:
+                pass
             self.camera.calibrate_canvas(use_cache=use_cache)
 
         img = self.camera.get_canvas()
@@ -193,6 +200,7 @@ class Painter():
 
     def to_neutral(self, speed=0.4):
         # 移动到初始位置
+        print("移动到初始位置")
         if not self.opt.simulate:
             # self.robot.fa.reset_joints()  # 重置关节
             y = 0.4 
@@ -200,9 +208,11 @@ class Painter():
                 y = 0.4
             elif self.opt.robot == 'xarm':
                 y = 0.1
-            elif self.opt.robot == 'mycobot280pi':
+            elif self.opt.robot == 'ultraarm340':
                 y = 0.18
-            self.move_to_trajectories([[0,y,self.opt.INIT_TABLE_Z]], [None])
+            elif self.opt.robot == 'mycobot280pi':
+                y = 0.17
+            self.move_to_trajectories([[0,y,self.opt.INIT_TABLE_Z]], [None], move_by_joint=True)
 
     def move_robot_to_safe_position(self):
         ''' 移动机器人到不影响相机拍照的位置 '''
@@ -216,18 +226,20 @@ class Painter():
                 y = 0.4  # Franka 机器人的 y 位置
             elif self.opt.robot == 'xarm':
                 y = 0.1  # XArm 机器人的 y 位置
-            elif self.opt.robot == 'mycobot280pi':
+            elif self.opt.robot == 'ultraarm340':
                 x, y = 0.18, 0.25
+            elif self.opt.robot == 'mycobot280pi':
+                y = 0.4
 
             self.move_to_trajectories([[x, y, self.opt.INIT_TABLE_Z]], [None])  # 移动到指定轨迹
         time.sleep(3)
         print("机器人已移动到安全位置。")  # 提示用户机器人已移动
 
-    def move_to_trajectories(self, positions, orientations):
+    def move_to_trajectories(self, positions, orientations, move_by_joint=True):
         for i in range(len(orientations)):
             if orientations[i] is None:
                 orientations[i] = PERPENDICULAR_QUATERNION
-        return self.robot.go_to_cartesian_pose(positions, orientations)
+        return self.robot.go_to_cartesian_pose(positions, orientations, move_by_joint)
 
     def _move(self, x, y, z, q=None, timeout=20, method='direct', 
             step_size=.1, speed=0.1, duration=5):
@@ -312,6 +324,7 @@ class Painter():
         self.rub_brush_on_rag()
 
     def get_paint(self, paint_index):
+        print("Get paint index: ", paint_index)
         if self.opt.simulate: return
         x_offset = self.opt.PAINT_DIFFERENCE * np.floor(paint_index/6)
         y_offset = self.opt.PAINT_DIFFERENCE * (paint_index%6)
@@ -331,7 +344,7 @@ class Painter():
         positions.append([x,y,z + 0.02])
         positions.append([x,y,z+self.opt.HOVER_FACTOR])
         orientations = [None]*len(positions)
-        self.move_to_trajectories(positions, orientations)
+        self.move_to_trajectories(positions, orientations, move_by_joint=True)
 
 
     def set_height(self, x, y, z, move_amount=0.0015):

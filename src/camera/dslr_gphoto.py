@@ -49,7 +49,7 @@ def capture_image(camera):
     # 时间戳
     timestr = time.strftime("%Y%m%d-%H%M%S")
     target = os.path.join(os.getcwd(), f'captured_image{timestr}.jpg')  # 设定一个临时文件路径
-    # cv2.imwrite(target, frame)  # 使用 OpenCV 保存图像
+    cv2.imwrite(target, frame)  # 使用 OpenCV 保存图像
 
     return target, frame  # 返回文件路径和捕获的图像帧
 
