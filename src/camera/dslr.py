@@ -108,12 +108,15 @@ class WebCam():
 
     def get_canvas(self, use_cache=False, max_height=None):
         if self.H_canvas is None:
+            print("H_canvas is None, calibrating canvas")
             self.calibrate_canvas(use_cache)
         
         # 如果可能，使用校正后的图像
         if (self.has_color_info and self.opt.calib_colors):
+            print("Using color-corrected image")
             img = self.get_color_correct_image(use_cache)
         else:
+            print("Using raw image")
             _, img = self.get_rgb_image()
 
         canvas = cv2.warpPerspective(img, self.H_canvas, (img.shape[1], img.shape[0]))
@@ -130,6 +133,7 @@ class WebCam():
         if h is not None and w is not None:
             canvas = Resize((h,w), antialias=True)(canvas)
         canvas = torch.cat([canvas, torch.ones(1,1,canvas.shape[2],canvas.shape[3])], dim=1)
+        cv2.imwrite(os.path.join(os.getcwd(), "canvas.jpg"), canvas.squeeze(0).permute(1, 2, 0).numpy() * 255)  # 保存为JPEG格式
         return canvas
 
     def calibrate_canvas(self, use_cache=False):

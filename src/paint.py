@@ -77,9 +77,10 @@ if __name__ == '__main__':
         color_palette = get_colors(cv2.resize(cv2.imread(opt.use_colors_from)[:,:,::-1], (256, 256)), n_colors=opt.n_colors).to(device)
         opt.writer.add_image('paint_colors/using_colors_from_input', save_colors(color_palette), 0)
     dark_black = [0, 0, 0]  # 浓黑色
-    light_ink = [50, 50, 50]  # 淡墨色
+    light_ink = [105, 105, 105]  # 淡墨色
     color_palette = torch.tensor([dark_black, light_ink], dtype=torch.float32).to(device)
 
+    print("current_canvas = painter.camera.get_canvas_tensor(h=h_render,w=w_render).to(device) / 255.")
     current_canvas = painter.camera.get_canvas_tensor(h=h_render,w=w_render).to(device) / 255.
 
     load_objectives_data(opt)
@@ -92,15 +93,15 @@ if __name__ == '__main__':
         painting, color_palette = optimize_painting(opt, painting,
                     optim_iter=opt.init_optim_iter, color_palette=color_palette)
 
-    # import json
-    #
-    # with open('painting_data.json', 'w', encoding='utf-8') as f:
-    #     json.dump({
-    #         'painting': {
-    #             'brush_strokes': [painting.pop().to_dict() for _ in range(len(painting.brush_strokes))],
-    #             # 使用 pop 遍历并序列化 brush_strokes
-    #         },
-    #     }, f, ensure_ascii=False)
+    import json
+
+    with open('painting_data.json', 'w', encoding='utf-8') as f:
+        json.dump({
+            'painting': {
+                'brush_strokes': [painting.pop().to_dict() for _ in range(len(painting.brush_strokes))],
+                # 使用 pop 遍历并序列化 brush_strokes
+            },
+        }, f, ensure_ascii=False)
 
     # 从文件恢复 painting
     from src.brush_stroke import BrushStroke
@@ -149,14 +150,6 @@ if __name__ == '__main__':
                     painter.get_paint(color_ind)
                     painter.rub_brush_on_rag()
                     consecutive_paints = 0
-
-            # elif consecutive_paints % opt.how_often_to_get_paint == 0:
-            #     # 蘸墨
-            #     paint_index = (paint_index + 1) % 2
-            #     painter.get_paint(paint_index)
-            #     # 擦拭画笔
-            #     painter.rub_brush_on_rag()
-            #     consecutive_paints = 0
 
             # Convert the canvas proportion coordinates to meters from robot
             x, y = stroke.transformation.xt.item()*0.5+0.5, stroke.transformation.yt.item()*0.5+0.5

@@ -306,6 +306,7 @@ class Painter():
         """
         在抹布上擦拭画笔，以去除多余的颜料或水分。
         """
+        print("Rubbing brush on rag.")
         self.move_to(self.opt.RAG_POSTITION[0],self.opt.RAG_POSTITION[1],self.opt.RAG_POSTITION[2]+self.opt.HOVER_FACTOR, speed=0.3)
         positions = []
         positions.append([self.opt.RAG_POSTITION[0],self.opt.RAG_POSTITION[1],self.opt.RAG_POSTITION[2]+self.opt.HOVER_FACTOR])
@@ -391,7 +392,7 @@ class Painter():
                         curr_y -= move_amount
                     else:
                         print('Use arrow keys up and down. Esc when done.')
-                    
+                    print("x: ", curr_x, " y: ", curr_y, " z: ", curr_z)
                     self._move(curr_x, curr_y,curr_z)
 
     def calibrate_robot_tilt(self):

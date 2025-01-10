@@ -31,6 +31,7 @@ def get_param2img(opt, device='cuda'):
     
     # print(w_p2i_m - xtra_room_horz_m, 0.5*w_canvas_m)
     if (w_p2i_m- xtra_room_horz_m) > (0.5 * w_canvas_m):
+        print("w_p2i_m", w_p2i_m, "xtra_room_horz_m", xtra_room_horz_m, "w_canvas_m", w_canvas_m, "0.5 * w_canvas_m", 0.5 * w_canvas_m)
         raise Exception("The canvas width is less than two times the max_stroke_length. This makes it really too hard to render. Must use larger canvas.")
     
     param2img = StrokeParametersToImage()

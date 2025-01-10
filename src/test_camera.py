@@ -7,15 +7,18 @@ import time
 
 import numpy as np
 
-# from pymycobot.common import ProtocolCode
-# from torch import nn
-#
-# from camera.dslr import WebCam
-# from options import Options
-# from paint_utils3 import show_img, random_init_painting
-# from src.painter import Painter, PERPENDICULAR_QUATERNION
-# from my_tensorboard import TensorBoard
-# from src.robot import Cobot280, quaternion_to_euler_degrees
+from pymycobot.common import ProtocolCode
+from torch import nn
+
+from camera.dslr import WebCam
+from options import Options
+from paint_utils3 import show_img, random_init_painting, canvas_to_global_coordinates
+import sys
+sys.path.append(r"D:\code\frida")
+sys.path.append(r"D:\code\frida\src")
+from src.painter import Painter, PERPENDICULAR_QUATERNION
+from my_tensorboard import TensorBoard
+from src.robot import Cobot280, quaternion_to_euler_degrees
 def save_ndarray_to_json(dir_path):
     """用本机版本保存到 JSON 文件"""
     names = ['cached_H_coord', "cached_H_canvas" ]
@@ -40,41 +43,44 @@ def reload_ndarray_from_json(dir_path):
         with open(os.path.join(dir_path, f"{name}.pkl"), 'wb') as f:
             pickle.dump(H_coord, f)
 
-
+# python.exe test_camera.py --robot ultraarm340 --materials_json ../materials_ink.json --use_cache --cache_dir src/caches/sss_test --render_height 256 --dont_retrain_stroke_model --num_strokes 100 --n_colors 2 --objective clip_conv_loss --objective_data src/inputs/1.png --objective_weight 1.0 --init_optim_iter 1500 --lr_multiplier 2.0
 if __name__ == '__main__':
     dir_path = r"D:\code\frida\src\caches\cobot280"
 
-    # save_ndarray_to_json(dir_path)
-    reload_ndarray_from_json(dir_path)
-    exit(0)
-    # opt = Options()
-    # opt.gather_options()
-    #
-    # date_and_time = datetime.datetime.now()
-    # run_name = '' + date_and_time.strftime("%m_%d__%H_%M_%S")
-    # opt.writer = TensorBoard('{}/{}'.format(opt.tensorboard_dir, run_name))
-    # opt.writer.add_text('args', str(sys.argv), 0)
-    #
-    # painter = Painter(opt)
-    # opt = painter.opt # This necessary?
-    # painter.to_neutral()
+    opt = Options()
+    opt.gather_options()
+
+    date_and_time = datetime.datetime.now()
+    run_name = '' + date_and_time.strftime("%m_%d__%H_%M_%S")
+    opt.writer = TensorBoard('{}/{}'.format(opt.tensorboard_dir, run_name))
+    opt.writer.add_text('args', str(sys.argv), 0)
+
+    painter = Painter(opt)
+    opt = painter.opt # This necessary?
+    painter.to_neutral()
+    print('\n画笔尖校准\n')
+    print('画笔应该位于画布的正中心。')
+    print('使用 "w" 和 "s" 键将画笔设置为刚好接触画布。')
+
+    p = canvas_to_global_coordinates(0.5, 0.5, painter.opt.INIT_TABLE_Z, painter.opt)
+    painter.set_height(p[0], p[1], painter.opt.INIT_TABLE_Z)[2]
+
     # angle = quaternion_to_euler_degrees(PERPENDICULAR_QUATERNION)
     # print("PERPENDICULAR_QUATERNION angle is ", angle)
  
-    from pymycobot import MyCobotSocket
-    mc = MyCobotSocket("192.168.31.8", 9000)
-    # 贴近纸面中心 [278.1, -63.8, 93.1, 180, 0, -45]
-    pos = mc.get_coords()
-    print(pos)
-    time.sleep(5)
-    # [50.3, -63.5, 410.2, -90.86, -44.54, -88.16]
-    mc.sync_send_angles([0, 0, 0, 0, 0, -45], 20)
-    time.sleep(5)
-    pos = mc.get_coords()
-    print("reset: ", pos)
-    # mc._mesg(0x1A,1)
-    mc.sync_send_coords(1)
-    # mc.move_to_position([50, 50, 20, 180, 0, -45])
+    # from pymycobot import MyCobotSocket
+    # mc = MyCobotSocket("192.168.31.8", 9000)
+    # # 贴近纸面中心 [278.1, -63.8, 93.1, 180, 0, -45]
+    # pos = mc.get_coords()
+    # print(pos)
+    # time.sleep(5)
+    # # [50.3, -63.5, 410.2, -90.86, -44.54, -88.16]
+    # mc.sync_send_angles([0, 45, 0, 0, 0, -45], 20)
+    # time.sleep(5)
+    # pos = mc.get_coords()
+    # print("reset: ", pos)
+    # # mc._mesg(0x1A,1)
+    # mc.sync_send_coords([278.1, -63.8, 93.1, 180, 0, -45], 10, 0)
     # time.sleep(5)
     # pos = mc.get_position()
     # print(pos)
