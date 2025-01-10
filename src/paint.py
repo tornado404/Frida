@@ -77,7 +77,7 @@ if __name__ == '__main__':
         color_palette = get_colors(cv2.resize(cv2.imread(opt.use_colors_from)[:,:,::-1], (256, 256)), n_colors=opt.n_colors).to(device)
         opt.writer.add_image('paint_colors/using_colors_from_input', save_colors(color_palette), 0)
     dark_black = [0, 0, 0]  # 浓黑色
-    light_ink = [105, 105, 105]  # 淡墨色
+    light_ink = [50, 50, 50]  # 淡墨色
     color_palette = torch.tensor([dark_black, light_ink], dtype=torch.float32).to(device)
 
     print("current_canvas = painter.camera.get_canvas_tensor(h=h_render,w=w_render).to(device) / 255.")
@@ -126,57 +126,80 @@ if __name__ == '__main__':
 
     strokes_per_adaptation = int(len(painting) / opt.num_adaptations)
     # for adaptation_it in range(opt.num_adaptations):
-    while len(painting) > 0:
-        ################################
-        ### Execute some of the plan ###
-        ################################
+
+
+    if len(painting) == 0:
+        print("No strokes to paint. Exiting.")
+        exit(0)
+    strokes_array = []
+    for stroke_ind in range(min(len(painting), strokes_per_adaptation)):
+        stroke = painting.pop()
+        strokes_array.append(stroke)
+
+    temp_strokes = strokes_array.copy()
+    # 记录每个笔画的颜色索引
+    color_index_list = []
+    for stroke_ind, stroke in enumerate(temp_strokes):
+        color_ind, _ = nearest_color(stroke.color_transform.detach().cpu().numpy(),
+                                 color_palette.detach().cpu().numpy())
+        color_index_list.append(color_ind)
+    # copy array and walk through it by different color
+
+    for index, color in enumerate(color_palette):
+        # 遍历 color_palette 中的每种颜色, 每一轮只画一种颜色，画完之后执行换颜色操作
+        temp_strokes = strokes_array.copy()
         consecutive_paints = 0
-        paint_index = 1
-        for stroke_ind in range(min(len(painting),strokes_per_adaptation)):
-            stroke = painting.pop()            
-            
+        for stroke_ind, stroke in enumerate(temp_strokes):
             # Clean paint brush and/or get more paint
+            if color_index_list[stroke_ind] != index:
+                # 如果颜色不匹配，则跳过
+                continue
             if not painter.opt.ink:
-                color_ind, _ = nearest_color(stroke.color_transform.detach().cpu().numpy(), 
-                                             color_palette.detach().cpu().numpy())
-                new_paint_color = color_ind != curr_color
-                if new_paint_color or consecutive_strokes_no_clean > 12:
-                    painter.clean_paint_brush()
-                    painter.clean_paint_brush()
-                    consecutive_strokes_no_clean = 0
-                    curr_color = color_ind
-                    new_paint_color = True
+                new_paint_color = False
+                # if consecutive_strokes_no_clean > 12:
+                #     painter.clean_paint_brush()
+                #     painter.clean_paint_brush()
+                #     consecutive_strokes_no_clean = 0
+                #     curr_color = color_ind
+                #     new_paint_color = True
                 if consecutive_paints % opt.how_often_to_get_paint == 0 or new_paint_color:
-                    painter.get_paint(color_ind)
+                    painter.get_paint(index)
                     painter.rub_brush_on_rag()
                     consecutive_paints = 0
 
             # Convert the canvas proportion coordinates to meters from robot
-            x, y = stroke.transformation.xt.item()*0.5+0.5, stroke.transformation.yt.item()*0.5+0.5
-            y = 1-y
-            x, y = min(max(x,0.),1.), min(max(y,0.),1.) #safety
-            x_glob, y_glob,_ = canvas_to_global_coordinates(x,y,None,painter.opt)
+            x, y = stroke.transformation.xt.item() * 0.5 + 0.5, stroke.transformation.yt.item() * 0.5 + 0.5
+            y = 1 - y
+            x, y = min(max(x, 0.), 1.), min(max(y, 0.), 1.)  # safety
+            x_glob, y_glob, _ = canvas_to_global_coordinates(x, y, None, painter.opt)
 
             # Runnit
             stroke.execute(painter, x_glob, y_glob, stroke.transformation.a.item())
             consecutive_paints += 1
-        #######################
-        ### Update the plan ###
-        #######################
-        # painter.to_neutral()
-        painter.dip_brush_in_water()
-        time.sleep(15)
-        current_canvas = painter.camera.get_canvas_tensor(h=h_render,w=w_render).to(device) / 255.
-        painting.background_img = current_canvas
-        painting, _ = optimize_painting(opt, painting, 
-                    optim_iter=opt.optim_iter, color_palette=color_palette)
 
+        painter.clean_paint_brush()
+        painter.clean_paint_brush()
+        consecutive_strokes_no_clean = 0
 
+        # 如果不是最后一种颜色，则获取下一种颜色
+        if index != len(color_palette) - 1:
+            painter.get_paint(index + 1)
+        painter.rub_brush_on_rag()
+        consecutive_paints = 0
+
+    #######################
+    ### Update the plan ###
+    #######################
+    painter.dip_brush_in_water()
+    time.sleep(15)
+    current_canvas = painter.camera.get_canvas_tensor(h=h_render, w=w_render).to(device) / 255.
+    painting.background_img = current_canvas
+    painting, _ = optimize_painting(opt, painting,
+                                    optim_iter=opt.optim_iter, color_palette=color_palette)
 
     # to_video(plans, fn=os.path.join(opt.plan_gif_dir,'sim_canvases{}.mp4'.format(str(time.time()))))
     # with torch.no_grad():
     #     save_image(painting(h*4,w*4, use_alpha=False), os.path.join(opt.plan_gif_dir, 'init_painting_plan{}.png'.format(str(time.time()))))
-
 
     painter.robot.good_night_robot()
 
