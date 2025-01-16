@@ -93,15 +93,16 @@ if __name__ == '__main__':
         painting, color_palette = optimize_painting(opt, painting,
                     optim_iter=opt.init_optim_iter, color_palette=color_palette)
 
-    import json
+        import json
 
-    with open('painting_data.json', 'w', encoding='utf-8') as f:
-        json.dump({
-            'painting': {
-                'brush_strokes': [painting.pop().to_dict() for _ in range(len(painting.brush_strokes))],
-                # 使用 pop 遍历并序列化 brush_strokes
-            },
-        }, f, ensure_ascii=False)
+        with open('painting_data.json', 'w', encoding='utf-8') as f:
+            json.dump({
+                'painting': {
+                    'brush_strokes': [painting.pop().to_dict() for _ in range(len(painting.brush_strokes))],
+                    # 使用 pop 遍历并序列化 brush_strokes
+                },
+            }, f, ensure_ascii=False)
+
 
     # 从文件恢复 painting
     from src.brush_stroke import BrushStroke
@@ -113,6 +114,9 @@ if __name__ == '__main__':
         for stroke_data in data['painting']['brush_strokes']:  # 遍历反序列化 brush_strokes
             strokes_array.append(BrushStroke.from_dict(stroke_data, opt))
         painting.brush_strokes = nn.ModuleList(strokes_array)
+        color_palette_int = [[int(c * 255) for c in color] for color in data['painting']['color_palette']]
+        print("color_palette_int", color_palette_int)
+        color_palette = torch.tensor(color_palette_int, dtype=torch.float32).to(device)
 
 
     if not painter.opt.simulate:
@@ -144,7 +148,7 @@ if __name__ == '__main__':
                                  color_palette.detach().cpu().numpy())
         color_index_list.append(color_ind)
     # copy array and walk through it by different color
-
+    print("color_index_list", color_index_list)
     for index, color in enumerate(color_palette):
         # 遍历 color_palette 中的每种颜色, 每一轮只画一种颜色，画完之后执行换颜色操作
         temp_strokes = strokes_array.copy()

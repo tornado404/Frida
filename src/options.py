@@ -69,7 +69,7 @@ class Options(object):
         parser.add_argument('--num_augs', type=int, default=30)
 
         # Painting Parameters
-        parser.add_argument('--how_often_to_get_paint', type=int, default=5)
+        parser.add_argument('--how_often_to_get_paint', type=int, default=10)
 
         # Logging Parameters
         parser.add_argument("--tensorboard_dir", type=str,
