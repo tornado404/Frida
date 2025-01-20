@@ -69,7 +69,7 @@ git clone https://github.com/jmhessel/clipscore.git
 
 ```
 # 在另一个终端中运行此命令以查看进度
-tensorboard --logdir Frida/src/painting_log
+tensorboard --logdir src/painting_log
 
 # 打开浏览器并导航到 http://localhost:6006/
 ```

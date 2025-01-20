@@ -16,7 +16,7 @@ class Options(object):
     def __init__(self):
         self.initialized = False
         self.opt = {}
-        self.INIT_TABLE_Z = 0.55
+        self.INIT_TABLE_Z = 0.15
         self.CANVAS_WIDTH_PIX  = None # set these after taking a picture
         self.CANVAS_HEIGHT_PIX = None
 

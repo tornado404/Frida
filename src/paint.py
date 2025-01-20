@@ -114,9 +114,10 @@ if __name__ == '__main__':
         for stroke_data in data['painting']['brush_strokes']:  # 遍历反序列化 brush_strokes
             strokes_array.append(BrushStroke.from_dict(stroke_data, opt))
         painting.brush_strokes = nn.ModuleList(strokes_array)
-        color_palette_int = [[int(c * 255) for c in color] for color in data['painting']['color_palette']]
-        print("color_palette_int", color_palette_int)
-        color_palette = torch.tensor(color_palette_int, dtype=torch.float32).to(device)
+        if 'color_palette' in data['painting']:
+            color_palette_int = [[int(c * 255) for c in color] for color in data['painting']['color_palette']]
+            print("color_palette_int", color_palette_int)
+            color_palette = torch.tensor(color_palette_int, dtype=torch.float32).to(device)
 
 
     if not painter.opt.simulate:

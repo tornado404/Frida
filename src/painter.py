@@ -206,13 +206,18 @@ class Painter():
             y = 0.4 
             if self.opt.robot == 'franka':
                 y = 0.4
+                self.move_to_trajectories([[0, y, self.opt.INIT_TABLE_Z]], [None], move_by_joint=True)
             elif self.opt.robot == 'xarm':
                 y = 0.1
+                self.move_to_trajectories([[0, y, self.opt.INIT_TABLE_Z]], [None], move_by_joint=True)
             elif self.opt.robot == 'ultraarm340':
                 y = 0.18
+                self.move_to_trajectories([[0, y, self.opt.INIT_TABLE_Z]], [None], move_by_joint=True)
             elif self.opt.robot == 'mycobot280pi':
-                y = 0.17
-            self.move_to_trajectories([[0,y,self.opt.INIT_TABLE_Z]], [None], move_by_joint=True)
+                y = 0.12
+                self.move_to_trajectories([[0,y,self.opt.INIT_TABLE_Z]], [None], move_by_joint=True)
+            else:
+                print("Unknown robot type.")
 
     def move_robot_to_safe_position(self):
         ''' 移动机器人到不影响相机拍照的位置 '''
@@ -325,17 +330,18 @@ class Painter():
         self.rub_brush_on_rag()
 
     def get_paint(self, paint_index):
-        print("Get paint index: ", paint_index)
         if self.opt.simulate: return
         x_offset = self.opt.PAINT_DIFFERENCE * np.floor(paint_index/6)
         y_offset = self.opt.PAINT_DIFFERENCE * (paint_index%6)
+        # x_offset = self.opt.PAINT_DIFFERENCE * (paint_index%6)
+        # y_offset = self.opt.PAINT_DIFFERENCE * np.floor(paint_index/6)
 
         x = self.opt.PALLETTE_POSITION[0] + x_offset
         y = self.opt.PALLETTE_POSITION[1] + y_offset
         z = self.opt.PALLETTE_POSITION[2] 
         
         self.move_to(x,y,z+self.opt.HOVER_FACTOR)
-
+        print("Get paint index: ", paint_index, "Move to ", x, y, z+self.opt.HOVER_FACTOR)
         positions, orientations = [], []
         positions.append([x,y,z+self.opt.HOVER_FACTOR])
         positions.append([x,y,z+0.02])

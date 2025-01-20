@@ -43,7 +43,8 @@ def reload_ndarray_from_json(dir_path):
         with open(os.path.join(dir_path, f"{name}.pkl"), 'wb') as f:
             pickle.dump(H_coord, f)
 
-# python.exe test_camera.py --robot ultraarm340 --materials_json ../materials_ink.json --use_cache --cache_dir src/caches/sss_test --render_height 256 --dont_retrain_stroke_model --num_strokes 100 --n_colors 2 --objective clip_conv_loss --objective_data src/inputs/1.png --objective_weight 1.0 --init_optim_iter 1500 --lr_multiplier 2.0
+# 在工程根目录执行
+# python.exe src/test_camera.py --robot mycobot280pi --materials_json materials_ink.json --use_cache --cache_dir src/caches/small_brush_cobot --render_height 256 --dont_retrain_stroke_model --num_strokes 100 --n_colors 2 --objective clip_conv_loss --objective_data src/inputs/1.png --objective_weight 1.0 --init_optim_iter 1500 --lr_multiplier 2.0
 if __name__ == '__main__':
     dir_path = r"D:\code\frida\src\caches\cobot280"
 
@@ -63,13 +64,13 @@ if __name__ == '__main__':
     print('使用 "w" 和 "s" 键将画笔设置为刚好接触画布。')
 
     p = canvas_to_global_coordinates(0.5, 0.5, painter.opt.INIT_TABLE_Z, painter.opt)
-    painter.set_height(p[0], p[1], painter.opt.INIT_TABLE_Z)[2]
+    painter.set_height(p[0], p[1], painter.opt.INIT_TABLE_Z, 0.01)[2]
 
     # angle = quaternion_to_euler_degrees(PERPENDICULAR_QUATERNION)
     # print("PERPENDICULAR_QUATERNION angle is ", angle)
  
     # from pymycobot import MyCobotSocket
-    # mc = MyCobotSocket("192.168.31.8", 9000)
+    # mc = MyCobotSocket("192.168.31.7", 9000)
     # # 贴近纸面中心 [278.1, -63.8, 93.1, 180, 0, -45]
     # pos = mc.get_coords()
     # print(pos)

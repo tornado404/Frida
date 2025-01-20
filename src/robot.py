@@ -630,7 +630,7 @@ class UltraArm340(Robot):
             ua = ultraArm(ch340_port, 115200)
         else:
             from pymycobot import MyCobotSocket
-            ua = MyCobotSocket('192.168.31.8', 9000)
+            ua = MyCobotSocket('192.168.31.7', 9000)
         return ua
 
     def disable_enable_com_port(self, key_words: str):
@@ -846,7 +846,7 @@ class Cobot280(Robot):
         Low-level action functionality of the UltraArm robot.
     '''
 
-    def __init__(self, host="192.168.31.8", port=9000, debug=False):
+    def __init__(self, host="192.168.31.7", port=9000, debug=False):
         """
         初始化 UltraArm 机器人。
         该函数用于建立与机械臂的socket连接
@@ -941,21 +941,23 @@ class Cobot280(Robot):
             # item的格式为 [x,y,z,rx,ry,rz]
             # [x,y,z]表示的是机械臂头部在空间中的位置（该坐标系为直角坐标系），
             # [rx,ry,rz]表示的是机械臂头部在该点的姿态（该坐标系为欧拉坐标）
-            # x	-281.45 ~ 281.45
+            # x	0 ~ 281.45
             # y	-281.45 ~ 281.45
             # z	-70 ~ 412.67
-            # 180, 0, -45 为 rx ry rz 的默认值  rz 166 2
+            # 180, 0, -45 为 rx ry rz 的默认值  当 x>220 rz -45  当 x<220 rz 145
             converted_angles = quaternion_to_euler_degrees(orientations[i])
-            converted_angles[-1] = converted_angles[-1] + 60
-            formated_item = [item[0] * 1000, item[1] * 1000, item[2] * 1000, *converted_angles]
-            if not self.safe_position_check(formated_item):
-                logger.warning("机械臂超出安全范围，机械臂坐标为：{}", formated_item)
-            logger.info("formated_item is {}", formated_item)
+            # converted_angles[-1] = converted_angles[-1] + 60
+            converted_angles[-1] = 145
+            formated_item = [item[1] * 1000, item[0] * 1000, item[2] * 1000, *converted_angles]
+            # if not self.safe_position_check(formated_item):
+            #     logger.warning("机械臂超出安全范围，机械臂坐标为：{}", formated_item)
+            logger.info(f"formated_item is {[int(x) for x in formated_item]}")
             if move_by_joint:
                 # 0-非线性（默认），1-直线运动
                 self.cobot.send_coords(formated_item, speed, 0)
             else:
                 self.cobot.send_coords(formated_item, speed, 0)
+            # print(self.cobot.get_angles())
 
     def move_to_joint_positions(self, joint_angles, speed=100):
         """
@@ -980,7 +982,7 @@ class Cobot280(Robot):
         if dis > 280:
             return False
         # z的范围不能低于10mm
-        if item[2] < 10:
+        if item[2] < 60:
             return False
         return True
 

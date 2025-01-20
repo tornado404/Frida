@@ -2,7 +2,7 @@ import time
 
 from pymycobot import MyCobotSocket
 # Port 9000 is used by default
-mc = MyCobotSocket("192.168.31.8", 9000)
+mc = MyCobotSocket("192.168.31.7", 9000)
 mc.power_on()
 print("is power on:", mc.is_power_on())
 print("is_controller_connected:", mc.is_controller_connected())
