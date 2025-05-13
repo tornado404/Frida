@@ -300,8 +300,8 @@ class BrushStroke(nn.Module):
             )
         path = BrushStroke.get_rotated_trajectory(rotation, trajectory)
         
-        painter.move_to(x_start+path[0,0], y_start+path[0,1], painter.Z_CANVAS + 0.03, speed=0.4)
-        painter.move_to(x_start+path[0,0], y_start+path[0,1], painter.Z_CANVAS + 0.005, speed=0.1)
+        painter.move_to(x_start+path[0,0], y_start+path[0,1], painter.Z_CANVAS + 0.03, speed=0.4, is_drawing=True)
+        painter.move_to(x_start+path[0,0], y_start+path[0,1], painter.Z_CANVAS + 0.005, speed=0.1, is_drawing=True)
 
         p0 = path[0,0], path[0,1], path[0,2]
         p3 = None
@@ -408,6 +408,7 @@ class BrushStroke(nn.Module):
                 n_points_total += 1
 
                 # Don't over shoot the canvas
+                # todo 这里超出边界会画直线，后续需要移除
                 x_next = min(max(painter.opt.X_CANVAS_MIN, x_next), painter.opt.X_CANVAS_MAX) 
                 y_next = min(max(painter.opt.Y_CANVAS_MIN, y_next), painter.opt.Y_CANVAS_MAX)
 
@@ -426,18 +427,18 @@ class BrushStroke(nn.Module):
                         all_orientations.append(q)
                 else:
                     if t == 0 and i==0:
-                        painter.move_to(x_next, y_next, z+0.02, q=q, method='direct', speed=0.1)
-                        painter.move_to(x_next, y_next, z+0.005, q=q, method='direct', speed=0.03)
+                        painter.move_to(x_next, y_next, z+0.02, q=q, method='direct', speed=0.1, is_drawing=True)
+                        painter.move_to(x_next, y_next, z+0.005, q=q, method='direct', speed=0.03, is_drawing=True)
                     painter.move_to(x_next, y_next, z, q=q, method='direct', speed=0.05)
                     if t == 1 and (i == len(path)-4):
-                        painter.move_to(x_next, y_next, z+0.01, q=q, method='direct', speed=0.03)
-                        painter.move_to(x_next, y_next, z+0.02, q=q, method='direct', speed=0.1)
+                        painter.move_to(x_next, y_next, z+0.01, q=q, method='direct', speed=0.03, is_drawing=True)
+                        painter.move_to(x_next, y_next, z+0.02, q=q, method='direct', speed=0.1, is_drawing=True)
                 # time.sleep(0.02)
             p0 = p3
 
         stroke_complete = False
         if smooth and ((n_points_off_canvas/n_points_total) < 0.9):
-            stroke_complete = painter.move_to_trajectories(all_positions, all_orientations)
+            stroke_complete = painter.move_to_trajectories(all_positions, all_orientations, is_drawing=True)
         
 
         # Don't over shoot the canvas
@@ -445,7 +446,7 @@ class BrushStroke(nn.Module):
         y_next = y_start+path[-1,1]
         x_next = min(max(painter.opt.X_CANVAS_MIN, x_next), painter.opt.X_CANVAS_MAX) 
         y_next = min(max(painter.opt.Y_CANVAS_MIN, y_next), painter.opt.Y_CANVAS_MAX)
-        painter.move_to(x_next, y_next, painter.Z_CANVAS + 0.04, speed=0.3)
+        painter.move_to(x_next, y_next, painter.Z_CANVAS + 0.04, speed=0.3, is_drawing=True)
         # painter.hover_above(x_start+path[-1,0], y_start+path[-1,1], painter.Z_CANVAS)
 
         return stroke_complete

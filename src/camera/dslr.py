@@ -52,7 +52,6 @@ class WebCam():
         # 选项配置
         self.opt = opt
 
-
     def get_rgb_image(self, channels='rgb'):
         # 获取RGB图像
         self.camera = camera_init()
@@ -60,9 +59,14 @@ class WebCam():
         self.camera.release()
 
         if channels == 'rgb':
-            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)  # 转换为RGB格式
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)  # BGR转RGB
+            img = img.astype(np.float32) / 255.0        # 转为float32并归一化，模拟plt.imread的行为
+            cv2.imwrite(os.path.join(os.getcwd(), "get_rgb_image.jpg"),
+                        (img * 255).astype(np.uint8))  # 保存图像，注意要转回uint8
+
         elif channels == 'bgr':
-            pass  # 保持BGR格式
+            pass  # 保持BGR格式，不处理
+
         else:
             raise ValueError("Unsupported channel format: {}".format(channels))
 

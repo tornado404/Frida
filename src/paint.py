@@ -41,7 +41,8 @@ if __name__ == '__main__':
     run_name = '' + date_and_time.strftime("%m_%d__%H_%M_%S")
     opt.writer = TensorBoard('{}/{}'.format(opt.tensorboard_dir, run_name))
     opt.writer.add_text('args', str(sys.argv), 0)
-
+    opt.render_width = 1920
+    opt.render_height = 1080
     painter = Painter(opt)
     opt = painter.opt # This necessary?
 
@@ -77,8 +78,8 @@ if __name__ == '__main__':
         color_palette = get_colors(cv2.resize(cv2.imread(opt.use_colors_from)[:,:,::-1], (256, 256)), n_colors=opt.n_colors).to(device)
         opt.writer.add_image('paint_colors/using_colors_from_input', save_colors(color_palette), 0)
     dark_black = [0, 0, 0]  # 浓黑色
-    light_ink = [50, 50, 50]  # 淡墨色
-    color_palette = torch.tensor([dark_black, light_ink], dtype=torch.float32).to(device)
+    light_ink = [40, 40, 40]  # 淡墨色
+    color_palette = torch.tensor([light_ink, dark_black], dtype=torch.float32).to(device)
 
     print("current_canvas = painter.camera.get_canvas_tensor(h=h_render,w=w_render).to(device) / 255.")
     current_canvas = painter.camera.get_canvas_tensor(h=h_render,w=w_render).to(device) / 255.
@@ -88,6 +89,10 @@ if __name__ == '__main__':
     painting = random_init_painting(opt, current_canvas, opt.num_strokes, ink=opt.ink)
     painting.to(device)
 
+    # 初始化代码，没有缓存记录
+    # painting, color_palette = optimize_painting(opt, painting, optim_iter=opt.init_optim_iter, color_palette=color_palette)
+
+    # 使用缓存
     # Do the initial optimization
     if not os.path.exists('painting_data.json'):
         painting, color_palette = optimize_painting(opt, painting,
@@ -119,14 +124,14 @@ if __name__ == '__main__':
             print("color_palette_int", color_palette_int)
             color_palette = torch.tensor(color_palette_int, dtype=torch.float32).to(device)
 
-
-    if not painter.opt.simulate:
-        show_img(current_canvas, "初始画布效果")
-        show_img(painting.background_img, "painting.background_img")
-        show_img(painter.camera.get_canvas()/255.,
-                 title="Initial plan complete. Ready to start painting. \
-                    Ensure mixed paint is provided and then exit this to \
-                    start painting.")
+    # 显示相机拍摄的初始纸面
+    # if not painter.opt.simulate:
+    #     show_img(current_canvas, "初始画布效果")
+    #     show_img(painting.background_img, "painting.background_img")
+    #     show_img(painter.camera.get_canvas()/255.,
+    #              title="Initial plan complete. Ready to start painting. \
+    #                 Ensure mixed paint is provided and then exit this to \
+    #                 start painting.")
 
 
     strokes_per_adaptation = int(len(painting) / opt.num_adaptations)
@@ -197,10 +202,10 @@ if __name__ == '__main__':
     #######################
     painter.dip_brush_in_water()
     time.sleep(15)
-    current_canvas = painter.camera.get_canvas_tensor(h=h_render, w=w_render).to(device) / 255.
-    painting.background_img = current_canvas
-    painting, _ = optimize_painting(opt, painting,
-                                    optim_iter=opt.optim_iter, color_palette=color_palette)
+    # current_canvas = painter.camera.get_canvas_tensor(h=h_render, w=w_render).to(device) / 255.
+    # painting.background_img = current_canvas
+    # painting, _ = optimize_painting(opt, painting,
+    #                                 optim_iter=opt.optim_iter, color_palette=color_palette)
 
     # to_video(plans, fn=os.path.join(opt.plan_gif_dir,'sim_canvases{}.mp4'.format(str(time.time()))))
     # with torch.no_grad():

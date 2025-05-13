@@ -6,7 +6,10 @@
 ################ All rights reserved. ####################
 ##########################################################
 
-
+import sys
+import os
+# 获取当前文件所在目录的上一级目录（即 D:\code\frida\src）
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 import numpy as np
 import torch
 from torch import nn

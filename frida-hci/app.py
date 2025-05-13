@@ -1,3 +1,11 @@
+import os
+# os.environ["http_proxy"] = "http://127.0.0.1:7890"
+# os.environ["https_proxy"] = "http://127.0.0.1:7890"
+# os.environ['CURL_CA_BUNDLE'] = 'G:/huggingface.co.crt'
+# # os.environ['CURL_CA_BUNDLE'] = ''
+# # os.environ['REQUESTS_CA_BUNDLE'] = ''
+# os.environ['HF_ENDPOINT'] = 'https://hf-mirror.com'
+
 from flask import Flask, send_from_directory, jsonify, request, redirect
 from torchvision.utils import save_image
 from PIL import Image

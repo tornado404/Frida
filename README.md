@@ -20,11 +20,11 @@ git clone https://github.com/cmubig/Frida.git
 
 # 安装CUDA
 
-# 我们使用Python 3.8
+# 我们使用Python 3.8    ps 保证numpy              1.24.1
 
 # 使用PIP安装python包
 cd Frida
-pip3 install --r requirements.txt
+pip3 install -r requirements.txt
 
 # （或）使用Conda安装python包
 cd Frida
@@ -70,6 +70,7 @@ git clone https://github.com/jmhessel/clipscore.git
 ```
 # 在另一个终端中运行此命令以查看进度
 tensorboard --logdir src/painting_log
+tensorboard --logdir=D:/code/frida/src/painting_log --port=6007
 
 # 打开浏览器并导航到 http://localhost:6006/
 ```

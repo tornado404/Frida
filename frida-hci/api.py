@@ -12,7 +12,6 @@ from PIL import Image
 import numpy as np
 import PIL
 from PIL import Image
-import os
 
 controlnet_model_name_or_path = "controlnet_models/checkpoint-12000_good/controlnet"
 pretrained_model_name_or_path = "runwayml/stable-diffusion-v1-5"
@@ -58,19 +57,19 @@ unet = UNet2DConditionModel.from_pretrained(
     pretrained_model_name_or_path, subfolder="unet"
 )
 
-controlnet = ControlNetModel.from_pretrained(controlnet_model_name_or_path)
-pipeline = StableDiffusionControlNetPipeline.from_pretrained(
-    pretrained_model_name_or_path,
-    vae=vae,
-    text_encoder=text_encoder,
-    tokenizer=tokenizer,
-    unet=unet,
-    controlnet=controlnet,
-    safety_checker=None,
-    torch_dtype=weight_dtype,
-)
-pipeline.scheduler = UniPCMultistepScheduler.from_config(pipeline.scheduler.config)
-pipeline = pipeline.to(device)
+# controlnet = ControlNetModel.from_pretrained(controlnet_model_name_or_path)
+# pipeline = StableDiffusionControlNetPipeline.from_pretrained(
+#     pretrained_model_name_or_path,
+#     vae=vae,
+#     text_encoder=text_encoder,
+#     tokenizer=tokenizer,
+#     unet=unet,
+#     controlnet=controlnet,
+#     safety_checker=None,
+#     torch_dtype=weight_dtype,
+# )
+# pipeline.scheduler = UniPCMultistepScheduler.from_config(pipeline.scheduler.config)
+# pipeline = pipeline.to(device)
 resolution = 512
 c = 0
 

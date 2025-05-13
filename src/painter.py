@@ -10,6 +10,7 @@
 import os
 import shutil
 import json
+
 import cv2
 import numpy as np
 from tqdm import tqdm
@@ -18,6 +19,7 @@ import pickle
 import math
 import gzip
 from brush_stroke import BrushStroke
+from loguru import logger
 
 from paint_utils3 import canvas_to_global_coordinates
 from robot import *
@@ -53,7 +55,7 @@ class Painter():
         '''
         self.opt = opt # Options object
         use_cache = opt.use_cache
-
+        self.is_recording = False
         self.robot = None
         if opt.simulate:
             self.robot = SimulatedRobot(debug=True)
@@ -64,7 +66,10 @@ class Painter():
         elif opt.robot == "ultraarm340":
             self.robot = UltraArm340(debug=True)
         elif opt.robot == "mycobot280pi":
-            self.robot = Cobot280(debug=True)
+            # self.robot = Cobot280(debug=True)
+            # self.robot = SimulatedMyCobot(debug=True)
+            self.robot = SimulatedTrajectoryRecordRobot(debug=True)
+            self.robot.setSize(opt)
         elif opt.robot == None:
             self.robot = SimulatedRobot(debug=True)
         if opt.simulate:
@@ -78,6 +83,7 @@ class Painter():
         while True: 
             try:
                 if not self.opt.simulate:
+                # if not self.opt.simulate and self.opt.robot != 'mycobot280pi':
                     logger.info("使用相机WebCam")
                     self.camera = WebCam(opt)
                 else:
@@ -98,7 +104,8 @@ class Painter():
         self.to_neutral()
 
         # Set how high the table is wrt the brush
-        if use_cache and os.path.exists(os.path.join(self.opt.cache_dir, "brush_tip_to_table_calib.json")):
+        brush_tip_to_table_calib = os.path.join(self.opt.cache_dir, "brush_tip_to_table_calib.json")
+        if use_cache and os.path.exists(brush_tip_to_table_calib):
             params = json.load(open(os.path.join(self.opt.cache_dir, "brush_tip_to_table_calib.json"),'rb'))
             self.Z_CANVAS = params['Z_CANVAS']
             self.Z_MAX_CANVAS = params['Z_MAX_CANVAS']
@@ -196,7 +203,7 @@ class Painter():
             from param2stroke import train_param2stroke
             train_param2stroke(self.opt)
 
-
+        self.canvas = None
 
     def to_neutral(self, speed=0.4):
         # 移动到初始位置
@@ -214,8 +221,9 @@ class Painter():
                 y = 0.18
                 self.move_to_trajectories([[0, y, self.opt.INIT_TABLE_Z]], [None], move_by_joint=True)
             elif self.opt.robot == 'mycobot280pi':
-                y = 0.12
-                self.move_to_trajectories([[0,y,self.opt.INIT_TABLE_Z]], [None], move_by_joint=True)
+                point = [-0.1, 0.12, self.opt.INIT_TABLE_Z]
+                print("Move to ", point)
+                self.move_to_trajectories([point], [None], move_by_joint=True)
             else:
                 print("Unknown robot type.")
 
@@ -236,18 +244,20 @@ class Painter():
             elif self.opt.robot == 'mycobot280pi':
                 y = 0.4
 
-            self.move_to_trajectories([[x, y, self.opt.INIT_TABLE_Z]], [None])  # 移动到指定轨迹
+            self.move_to_trajectories([[x, y, self.opt.INIT_TABLE_Z]], [None], move_by_joint=True)  # 移动到指定轨迹
         time.sleep(3)
         print("机器人已移动到安全位置。")  # 提示用户机器人已移动
 
-    def move_to_trajectories(self, positions, orientations, move_by_joint=True):
+    def move_to_trajectories(self, positions, orientations, move_by_joint=False, is_drawing=False):
         for i in range(len(orientations)):
             if orientations[i] is None:
                 orientations[i] = PERPENDICULAR_QUATERNION
+        if is_drawing and self.is_recording and self.out is not None and self.out.isOpened():
+            self.record_trajectory(positions, orientations)
         return self.robot.go_to_cartesian_pose(positions, orientations, move_by_joint)
 
     def _move(self, x, y, z, q=None, timeout=20, method='direct', 
-            step_size=.1, speed=0.1, duration=5):
+            step_size=.1, speed=0.1, duration=5, is_drawing=False):
         if self.opt.simulate: return
         '''
         Move to given x, y, z in global coordinates
@@ -264,8 +274,8 @@ class Painter():
     def hover_above(self, x,y,z, method='direct'):
         self._move(x,y,z+self.opt.HOVER_FACTOR, method=method, speed=0.4)
 
-    def move_to(self, x,y,z, q=None, method='direct', speed=0.05):
-        self._move(x,y,z, q=q, method=method, speed=speed)
+    def move_to(self, x,y,z, q=None, method='direct', speed=0.05, is_drawing=False):
+        self._move(x,y,z, q=q, method=method, speed=speed, is_drawing=is_drawing)
 
     def locate_items(self):
         self.dip_brush_in_water()
@@ -294,9 +304,10 @@ class Painter():
         self.hover_above(p[0], p[1], p[2])
 
     def dip_brush_in_water(self):
-        self.move_to(self.opt.WATER_POSITION[0],self.opt.WATER_POSITION[1],self.opt.WATER_POSITION[2]+self.opt.HOVER_FACTOR)
+        print("Dipping brush in water.")
+        self.move_to_trajectories([[self.opt.WATER_POSITION[0],self.opt.WATER_POSITION[1],self.opt.WATER_POSITION[2]+self.opt.HOVER_FACTOR * 3]], [None], move_by_joint=True)
         positions = []
-        positions.append([self.opt.WATER_POSITION[0],self.opt.WATER_POSITION[1],self.opt.WATER_POSITION[2]+self.opt.HOVER_FACTOR])
+        # positions.append([self.opt.WATER_POSITION[0],self.opt.WATER_POSITION[1],self.opt.WATER_POSITION[2]+self.opt.HOVER_FACTOR])
         positions.append([self.opt.WATER_POSITION[0],self.opt.WATER_POSITION[1],self.opt.WATER_POSITION[2]])
 
         # 生成5个带有噪声的水面位置
@@ -305,7 +316,7 @@ class Painter():
             positions.append([self.opt.WATER_POSITION[0]+noise[0],self.opt.WATER_POSITION[1]+noise[1],self.opt.WATER_POSITION[2]])
         positions.append([self.opt.WATER_POSITION[0],self.opt.WATER_POSITION[1],self.opt.WATER_POSITION[2]+self.opt.HOVER_FACTOR])
         orientations = [None]*len(positions)
-        self.move_to_trajectories(positions, orientations)
+        self.move_to_trajectories(positions, orientations, move_by_joint=False)
 
     def rub_brush_on_rag(self):
         """
@@ -321,11 +332,12 @@ class Painter():
             positions.append([self.opt.RAG_POSTITION[0]+noise[0],self.opt.RAG_POSTITION[1]+noise[1],self.opt.RAG_POSTITION[2]])
         positions.append([self.opt.RAG_POSTITION[0],self.opt.RAG_POSTITION[1],self.opt.RAG_POSTITION[2]+self.opt.HOVER_FACTOR])
         orientations = [None]*len(positions)
-        self.move_to_trajectories(positions, orientations)
+        self.move_to_trajectories(positions, orientations, move_by_joint=True)
 
     def clean_paint_brush(self):
+        print("Cleaning paint brush.")
         if self.opt.simulate: return
-        self.move_to(self.opt.WATER_POSITION[0],self.opt.WATER_POSITION[1],self.opt.WATER_POSITION[2]+0.09, speed=0.3)
+        # self.move_to(self.opt.WATER_POSITION[0],self.opt.WATER_POSITION[1],self.opt.WATER_POSITION[2]+0.09, speed=0.3)
         self.dip_brush_in_water()
         self.rub_brush_on_rag()
 
@@ -335,23 +347,23 @@ class Painter():
         y_offset = self.opt.PAINT_DIFFERENCE * (paint_index%6)
         # x_offset = self.opt.PAINT_DIFFERENCE * (paint_index%6)
         # y_offset = self.opt.PAINT_DIFFERENCE * np.floor(paint_index/6)
-
+        self.move_to(self.opt.PALLETTE_POSITION[0] * 0.8, self.opt.PALLETTE_POSITION[1] * 0.7, self.opt.PALLETTE_POSITION[2]  + self.opt.HOVER_FACTOR * 0.6)
         x = self.opt.PALLETTE_POSITION[0] + x_offset
         y = self.opt.PALLETTE_POSITION[1] + y_offset
         z = self.opt.PALLETTE_POSITION[2] 
         
-        self.move_to(x,y,z+self.opt.HOVER_FACTOR)
-        print("Get paint index: ", paint_index, "Move to ", x, y, z+self.opt.HOVER_FACTOR)
+        self.move_to(x,y,z+self.opt.HOVER_FACTOR * 0.6)
+        print("Get paint index: ", paint_index, "Move to ", x, y, z+self.opt.HOVER_FACTOR * 0.6)
         positions, orientations = [], []
-        positions.append([x,y,z+self.opt.HOVER_FACTOR])
+        positions.append([x,y,z+self.opt.HOVER_FACTOR * 0.6])
         positions.append([x,y,z+0.02])
         for i in range(3):
             noise = np.clip(np.random.randn(2)*0.004, a_min=-.009, a_max=0.009)
             positions.append([x+noise[0],y+noise[1],z])
         positions.append([x,y,z + 0.02])
-        positions.append([x,y,z+self.opt.HOVER_FACTOR])
+        positions.append([x,y,z+self.opt.HOVER_FACTOR * 0.6])
         orientations = [None]*len(positions)
-        self.move_to_trajectories(positions, orientations, move_by_joint=True)
+        self.move_to_trajectories(positions, orientations, move_by_joint=False)
 
 
     def set_height(self, x, y, z, move_amount=0.0015):
@@ -587,7 +599,127 @@ class Painter():
             pickle.dump(self.H_coord, f)
         return H
 
+    def start_recording(self):
+        """
+        """
+        self.video_dir = os.path.join(os.getcwd(), "trajectory")
+        self.video_file = os.path.join(self.video_dir, "robot_trajectory.mp4")
+        self.touch_depth = 100  # 贴近纸面时的高度，代表基础高度
+        self.press_depth = 2  # 按压时的最大高度，代表毛笔从贴近纸面到按压时的最大深度
+        self.canvas = None
+        self.out = None
+        # 计算画布的宽高比
+        aspect_ratio = self.opt.CANVAS_WIDTH_M / self.opt.CANVAS_HEIGHT_M
+        
+        # 基于1920x1080的最大尺寸进行等比缩放
+        if aspect_ratio > 1920/1080:  # 如果画布更宽
+            self.width = 1920
+            self.height = int(1920 / aspect_ratio)
+        else:  # 如果画布更高
+            self.height = 1080
+            self.width = int(1080 * aspect_ratio)
 
+        # 初始化机器人位置和姿态
+        
+        
+        logger.info("Starting robot trajectory recording, width:{}, height:{}", self.width, self.height)
+        # x1, x2, y1, y2 是canvas bounding box的坐标， e.g. CANVAS bound: X [-0.109, 0.109] Y[0.171, 0.349]
+        x1, x2, y1, y2 = self.opt.X_CANVAS_MIN, self.opt.X_CANVAS_MAX, self.opt.Y_CANVAS_MIN, self.opt.Y_CANVAS_MAX
+        logger.info("Canvas bound: X [{}, {}] Y[{}, {}]", x1, x2, y1, y2)
+        self.x1, self.x2, self.y1, self.y2 = x1, x2, y1, y2
+        self.is_recording = True
+
+        # 创建输出目录
+        if not os.path.exists(self.video_dir):
+            os.makedirs(self.video_dir)
+
+        # 初始化视频写入器
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        self.out = cv2.VideoWriter(self.video_file, fourcc, 30, (int(self.width), int(self.height)))
+        if not self.out.isOpened():
+            logger.error("Failed to open video writer")
+            return False
+
+        # 创建白色画布
+        self.canvas = np.full((int(self.height), int(self.width), 3), 255, dtype=np.uint8)
+        return True
+
+    def record_trajectory(self, positions_arr, orientations_arr):
+        positions, orientations = np.array(positions_arr), np.array(orientations_arr)
+        # 确保positions是二维数组，即使只有一个位置点
+        if len(positions.shape) == 1:
+            positions = positions.reshape(1, -1)
+            orientations = orientations.reshape(1, -1) if len(orientations.shape) == 1 else orientations
+
+        logger.info("positions shape {}", positions.shape)
+        # 将x坐标映射到画布宽度范围[0, self.width]
+        # 计算中心点坐标
+        scale = 0.5
+        center_x = (self.x1 + self.x2) / 2
+        center_y = (self.y1 + self.y2) / 2
+        # 将y坐标在区间[y1, y2]内进行翻转
+        positions[:, 1] = self.y2 - (positions[:, 1] - self.y1)
+        # 调整 x 和 y 的值，使其在指定的 bound 范围内进行缩放
+        positions[:, 0] = (positions[:, 0] - center_x) * scale + center_x
+        positions[:, 1] = (positions[:, 1] - center_y) * scale + center_y
+        # 将x坐标从[self.x1, self.x2]映射到画布宽度范围[0, self.width]
+        positions[:, 0] = (positions[:, 0] - self.x1) * self.width / (self.x2 - self.x1)
+        # 将y坐标从[self.y1, self.y2]映射到画布高度范围[0, self.height]
+        positions[:, 1] = (positions[:, 1] - self.y1) * self.height / (self.y2 - self.y1)
+        # 按照press_depth对positions[2]进行归一化1~3的宽度整数值
+        z_values = positions[:, 2]
+        # 将所有z值归一化到[1,3]范围
+        normalized_widths = 1 + (z_values / self.press_depth) * 2
+        # 确保所有宽度在有效范围内
+        normalized_widths = np.clip(normalized_widths, 1, 3)
+        positions[:, 2] = normalized_widths.astype(int)
+
+
+        # 确保positions是二维数组，即使只有一个位置点
+        if len(positions.shape) == 1:
+            positions = positions.reshape(1, -1)
+            orientations = orientations.reshape(1, -1) if len(orientations.shape) == 1 else orientations
+
+        # 初始化第一个点
+        prev_point = None
+        if len(positions) == 1:
+            x, y, z = positions[0][0], positions[0][1], positions[0][2]
+            center = (int(x), int(y))
+            cv2.circle(self.canvas, center, 3, (0, 255, 0), -1)
+            self.out.write(self.canvas)
+            return
+        for i, item in enumerate(positions):
+            # 将位置添加到轨迹中 (x, y, z)
+            # 实时绘制轨迹
+            # 获取当前点坐标
+            x, y, z = item[0], item[1], item[2]
+            center = (int(x), int(y))
+            # 计算笔画宽度 (基于z值)
+            # 这里简单使用z值作为宽度，可以根据需要调整归一化方法
+            wid = max(1, int(z * self.press_depth))
+            # 绘制线条
+            if prev_point:
+                cv2.line(self.canvas, prev_point, center, (0, 0, 0), wid)
+            else:
+                # 第一个点用绿色圆点标记
+                cv2.circle(self.canvas, center, 3, (0, 255, 0), -1)
+
+            # 更新前一个点
+            prev_point = center
+            # 在写入视频文件时更新最新画布图像
+
+            # 写入视频帧
+            self.out.write(self.canvas)
+            logger.debug(f"Drew trajectory point at x={x}, y={y}, z={z}, width={wid}")
+
+    def stop_recording(self):
+        self.is_recording = False
+        if not self.out:
+            return False
+        # 释放视频写入器
+        if self.out:
+            self.out.release()
+            self.out = None
 
     def paint_extended_stroke_library(self, save_batch_size=10):
         w = self.opt.CANVAS_WIDTH_PIX
@@ -750,3 +882,8 @@ class Painter():
                     pass
                 # Retake with the new paper
                 canvas_without_stroke = self.camera.get_canvas()
+
+    def get_latest_canvas(self):
+        return self.canvas
+    
+       

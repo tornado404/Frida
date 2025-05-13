@@ -1,4 +1,4 @@
-
+import cv2
 ##########################################################
 #################### Copyright 2022 ######################
 ################ by Peter Schaldenbrand ##################
@@ -47,6 +47,8 @@ def log_progress(painting, opt, log_freq=5, force_log=False, title='plan'):
             #opt.writer.add_image('images/{}'.format(title), np.clip(np_painting, a_min=0, a_max=1), local_it)
             p = painting(opt.h_render,opt.w_render, use_alpha=False)
             p = format_img(p)
+            print("add_image: " + title)
+
             opt.writer.add_image('images/{}'.format(title), p, local_it)
             
             plans.append((p*255.).astype(np.uint8))
@@ -156,7 +158,11 @@ def optimize_painting(opt, painting, optim_iter, color_palette=None,
                 optims[i_o].param_groups[0]['lr'] = og_lrs[i_o]*lr_factor
 
         p, alphas = painting(opt.h_render, opt.w_render, use_alpha=False, return_alphas=True)
-        
+        # 使用 format_img 函数转换图像,保存图像
+        np_img = format_img(p)
+        file_name = os.path.join(r'D:\code\frida\outputs', f'image_{it}.png')
+        cv2.imwrite(file_name, np_img * 255)
+
         loss = 0
         for k in range(len(opt.objective)):
             loss += parse_objective(opt.objective[k], 
@@ -187,13 +193,14 @@ def optimize_painting(opt, painting, optim_iter, color_palette=None,
 
             if not opt.ink:
                 discretize_colors(painting, color_palette)
-        log_progress(painting, opt, log_freq=opt.log_frequency, title=log_title)#, force_log=True)
+        log_progress(painting, opt, log_freq=opt.log_frequency, title=log_title , force_log=True)
 
 
     if not use_input_palette and not opt.ink:
         color_palette = painting.cluster_colors(opt.n_colors)
 
     if not opt.ink:
+        print("opt.ink is false , save ")
         with open(os.path.join(opt.cache_dir, 'colors_updated.npy'), 'wb') as f:
             np.save(f, (color_palette.detach().cpu().numpy()*255).astype(np.uint8))
         discretize_colors(painting, color_palette)

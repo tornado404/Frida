@@ -30,7 +30,7 @@ class Options(object):
 
         parser.add_argument('--use_cache', action='store_true', default=True, help='Use cached data for faster planning.')
         parser.add_argument("--materials_json", type=str, 
-            default='../materials_ink.json', help='path to json file specifying material locations.')
+            default=os.path.join(os.path.dirname(__file__), "../", 'materials_ink.json'), help='path to json file specifying material locations.')
         parser.add_argument("--cache_dir", type=str,
             default='./caches/cobot280', help='Where to store cached files.')
         parser.add_argument('--simulate', action='store_true', help="Don't execute. Just plan without a robot. Requires already cached data.")

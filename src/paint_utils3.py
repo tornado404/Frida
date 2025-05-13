@@ -320,9 +320,16 @@ def parse_csv_line_continuous(line):
     return x, y, r, length, thickness, bend, color
 
 def format_img(tensor_img):
+    """
+    将PyTorch张量图像转换为NumPy数组格式
+    """
+    # 确保输入张量是3通道的
     np_painting = tensor_img[:,:3].detach().cpu().numpy()[0].transpose(1,2,0)
+    # 如果图像是单通道的，将其转换为RGB
     if np_painting.shape[-1] == 1:
+        print("图像是单通道的，将其转换为RGB")
         np_painting = cv2.cvtColor(np.float32(np_painting), cv2.COLOR_GRAY2RGB)
+    # 确保像素值在0到1之间
     return np.clip(np_painting, a_min=0, a_max=1)
 
 

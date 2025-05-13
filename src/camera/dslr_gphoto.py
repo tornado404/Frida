@@ -29,8 +29,8 @@ def camera_init(camera_index=0):
     if not camera.isOpened():
         print("无法打开相机")
         return None
-    camera.set(cv2.CAP_PROP_FRAME_WIDTH, 3840)
-    camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 2160)
+    camera.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
+    camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
     return camera
 
 def empty_event_queue(camera):
@@ -46,19 +46,19 @@ def capture_image(camera):
     if not ret:
         print("无法捕获图像")
         return None, None  # 返回与 capture_image_bak 一致的值
-    center_x = frame.shape[1] // 2
-    center_y = frame.shape[0] // 2
-    crop_width = 950
-    crop_height = crop_width // 2  # 2:1的比例
-
-    # 确定裁剪区域的边界
-    x1 = max(center_x - crop_width // 2, 0)
-    x2 = min(center_x + crop_width // 2, frame.shape[1])
-    y1 = max(center_y - crop_height // 2, 0)
-    y2 = min(center_y + crop_height // 2, frame.shape[0])
-
-    # 裁剪图像
-    frame = frame[y1:y2, x1:x2]
+    # center_x = frame.shape[1] // 2
+    # center_y = frame.shape[0] // 2
+    # crop_width = 950
+    # crop_height = crop_width // 2  # 2:1的比例
+    #
+    # # 确定裁剪区域的边界
+    # x1 = max(center_x - crop_width // 2, 0)
+    # x2 = min(center_x + crop_width // 2, frame.shape[1])
+    # y1 = max(center_y - crop_height // 2, 0)
+    # y2 = min(center_y + crop_height // 2, frame.shape[0])
+    #
+    # # 裁剪图像
+    # frame = frame[y1:y2, x1:x2]
     # 假设我们将图像保存到临时文件中
     # 时间戳
     timestr = time.strftime("%Y%m%d-%H%M%S")

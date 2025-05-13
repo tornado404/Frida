@@ -1,0 +1,54 @@
+{
+    "canvas": {
+        "render_width": 1920,
+        "render_height": 1080,
+        "width_m": 1,
+        "height_m": 1
+    },
+    "painting": {
+        "num_strokes": 60,
+        "ink": false,
+        "how_often_to_get_paint": 1,
+        "num_adaptations": 1
+    },
+    "colors": {
+        "palettes": [
+            [
+                0,
+                0,
+                0
+            ],
+            [
+                40,
+                41,
+                41
+            ]
+        ],
+        "default_palette": [
+            [
+                40,
+                40,
+                40
+            ],
+            [
+                0,
+                0,
+                0
+            ]
+        ]
+    },
+    "objective": {
+        "data": ["inputs/4.jpg"],
+        "type": ["clip_conv_loss"],
+        "weight": [1.0]
+    },
+    "optimization": {
+        "init_optim_iter": 200,
+        "lr_multiplier": 1.0
+    },
+    "system": {
+        "cache_dir": "caches\\small_brush_yinhe",
+        "robot": "mycobot280pi",
+        "use_cache": true
+    }
+}

@@ -1,7 +1,10 @@
 #! /usr/bin/env python
 import os
+
+import mujoco
 import numpy as np
 import time
+import cv2
 
 from loguru import logger
 
@@ -21,8 +24,6 @@ class Robot:
     '''
     def __init__(self, debug, node_name="painting"):
         self.debug_bool = debug
-        import rospy
-        rospy.init_node(node_name)
 
     def debug(self, msg):
         if self.debug_bool:
@@ -34,7 +35,7 @@ class Robot:
     def good_night_robot(self):
         raise Exception("This method must be implemented")
 
-    def go_to_cartesian_pose(self, positions, orientations, precise=False):
+    def go_to_cartesian_pose(self, positions, orientations, precise=False, move_by_joint=False, speed=80):
         raise Exception("This method must be implemented")
 
 class XArm(Robot, object):
@@ -368,6 +369,235 @@ class SimulatedRobot(Robot, object):
 
     def go_to_cartesian_pose(self, position, orientation, move_by_joint=False):
         pass
+
+
+class SimulatedTrajectoryRecordRobot(Robot, object):
+    def __init__(self, debug=True):
+        super(SimulatedTrajectoryRecordRobot, self).__init__(debug)
+        self.current_position = None
+        self.current_orientation = None
+        self.video_dir = os.path.join(os.getcwd(), "trajectory")
+        self.video_file = os.path.join(self.video_dir, "robot_trajectory.mp4")
+        self.height, self.width = 1080, 1920
+        self.touch_depth = 100  # 贴近纸面时的高度，代表基础高度
+        self.press_depth = 2  # 按压时的最大高度，代表毛笔从贴近纸面到按压时的最大深度
+        self.canvas = None
+        self.out = None
+        self.debug("SimulatedTrajectoryRecordRobot initialized")
+
+    def setSize(self, opts):
+        self.width = opts.CANVAS_WIDTH_M * opts.render_width
+        self.height = opts.CANVAS_HEIGHT_M  * opts.render_height
+
+    def good_morning_robot(self):
+        """初始化机器人并开始记录轨迹"""
+        pass
+
+    def good_night_robot(self):
+        """关闭机器人并完成轨迹记录"""
+        # 如果没有轨迹点或视频写入器，直接返回
+        self.debug(f"Trajectory recording completed, saved to {self.video_file}")
+        return True
+
+    def go_to_cartesian_pose(self, positions, orientations, move_by_joint=False, precise=False, speed=80):
+        """模拟机器人移动到指定位置并记录轨迹
+        每次调用此方法时，会实时记录轨迹点并绘制线条
+        """
+        positions, orientations = np.array(positions), np.array(orientations)
+        # 确保positions是二维数组，即使只有一个位置点
+        if len(positions.shape) == 1:
+            positions = positions.reshape(1, -1)
+            orientations = orientations.reshape(1, -1) if len(orientations.shape) == 1 else orientations
+            
+        logger.info("positions shape {}", positions.shape)
+
+        # 处理新的轨迹点
+        for i, item in enumerate(positions):
+            # 将位置添加到轨迹中 (x, y, z)
+            logger.info("item:{}", item)
+        time.sleep(0.05)
+
+
+        return True
+
+
+class SimulatedMyCobot(Robot, object):
+    '''
+        使用MuJoCo实现的MyCobot 280机械臂仿真类
+    '''
+    def __init__(self, debug=True, node_name="painting"):
+        super(SimulatedMyCobot, self).__init__(debug, node_name)
+        # import rospy
+        # logger.info("rospy.init_node start")
+        # rospy.init_node(node_name)
+        # logger.info("rospy.init_node success")
+
+        import mujoco
+        import mujoco.viewer
+
+        self.model = mujoco.MjModel.from_xml_path(r'D:\code\frida\ROS\URDF\universal_robots_ur5e\scene.xml')
+        # 加载URDF到MuJoCo模型
+        self.data = mujoco.MjData(self.model)
+        
+        # 初始化关节名称映射
+        self.joint_names = [
+            "shoulder_pan_joint",    # 底座旋转关节
+            "shoulder_lift_joint",   # 肩部关节
+            "elbow_joint",          # 肘部关节
+            "wrist_1_joint",        # 腕部第一关节
+            "wrist_2_joint",        # 腕部第二关节
+            "wrist_3_joint"         # 腕部第三关节
+        ]
+        
+        # 获取关节ID
+        self.joint_ids = [self.model.joint(name).id for name in self.joint_names]
+        
+        # 初始化查看器
+        self.viewer = None
+        
+        # 初始化机械臂位置
+        self.reset_position()
+    
+    def reset_position(self):
+        """重置机械臂到初始位置"""
+        # 设置初始关节角度为0
+        for i, joint_id in enumerate(self.joint_ids):
+            self.data.qpos[joint_id] = 0.0
+        
+        # 更新模型
+        mujoco.mj_forward(self.model, self.data)
+
+    def good_morning_robot(self):
+        import mujoco.viewer
+        """初始化机械臂和查看器"""
+        self.debug("Initializing MuJoCo simulation for MyCobot 280")
+        
+        # 重置机械臂位置
+        self.reset_position()
+        
+        # 创建查看器
+        if self.viewer is None:
+            self.viewer = mujoco.viewer.launch_passive(self.model, self.data)
+            self.viewer.cam.distance = 1.0  # 设置相机距离
+            self.viewer.cam.azimuth = 90    # 设置相机方位角
+            self.viewer.cam.elevation = -20  # 设置相机仰角
+
+    def good_night_robot(self):
+        """关闭查看器和仿真"""
+        self.debug("Shutting down MuJoCo simulation")
+        if self.viewer is not None:
+            self.viewer.close()
+            self.viewer = None
+    
+    def moveit_go_to_cartesian_pose(self, positions, orientations):
+        moveit_commander.roscpp_initialize(sys.argv)
+        robot = moveit_commander.RobotCommander()
+        scene = moveit_commander.PlanningSceneInterface()
+        group = moveit_commander.MoveGroupCommander("arm")
+
+        for i in range(len(positions)):
+            pose_goal = group.get_current_pose().pose
+            pose_goal.position.x = positions[i][0]
+            pose_goal.position.y = positions[i][1]
+            pose_goal.position.z = positions[i][2]
+            pose_goal.orientation.x = orientations[i][0]
+            pose_goal.orientation.y = orientations[i][1]
+            pose_goal.orientation.z = orientations[i][2]
+            pose_goal.orientation.w = orientations[i][3]
+
+            group.set_pose_target(pose_goal)
+            plan = group.go(wait=True)
+            group.stop()
+            group.clear_pose_targets()
+
+        moveit_commander.roscpp_shutdown()
+
+    def inverse_kinematics(self, position, orientation):
+        """简化版逆运动学求解，将笛卡尔坐标转换为关节角度
+        
+        Args:
+            position: [x, y, z] 位置坐标 (米)
+            orientation: [x, y, z, w] 四元数方向
+            
+        Returns:
+            关节角度列表
+        """
+        # 这里使用简化的逆运动学算法
+        # 实际应用中应该使用更复杂的IK求解器
+        
+        # 将位置从米转换为模型单位
+        x, y, z = position[0], position[1], position[2]
+        
+        # 简化的IK计算 (这只是一个示例，实际应用需要更准确的IK)
+        # 在实际应用中，应该使用MuJoCo的内置IK或其他IK库
+        
+        # 计算到目标的距离
+        distance = np.sqrt(x**2 + y**2 + z**2)
+        
+        # 计算基座旋转角度 (绕Z轴)
+        base_angle = np.arctan2(y, x)
+        
+        # 简化的手臂角度计算
+        arm_angle = np.arcsin(z / distance) if distance > 0 else 0
+        
+        # 计算肘部角度
+        elbow_angle = np.pi/4  # 45度，简化计算
+        
+        # 从四元数计算欧拉角
+        roll, pitch, yaw = euler_from_quaternion(orientation[0], orientation[1], orientation[2], orientation[3])
+        
+        # 返回关节角度
+        joint_angles = [
+            base_angle,           # 底座旋转
+            arm_angle,            # 肩部关节
+            elbow_angle,          # 肘部关节
+            0.0,                  # 前臂关节
+            pitch,                # 腕部俯仰
+            roll                  # 末端执行器旋转
+        ]
+        
+        return joint_angles
+
+    def go_to_cartesian_pose(self, positions, orientations, precise=False, move_by_joint=False, speed=80):
+        """移动机械臂到指定的笛卡尔坐标
+        
+        Args:
+            positions: 位置坐标列表 [x, y, z] (米)
+            orientations: 方向四元数列表 [x, y, z, w]
+            precise: 是否使用精确模式 (未实现)
+            move_by_joint: 是否使用关节空间移动 (未实现)
+            speed: 移动速度 (未实现)
+        """
+        positions, orientations = np.array(positions), np.array(orientations)
+        if len(positions.shape) == 1:
+            positions = positions[None,:]
+            orientations = orientations[None,:]
+        
+        self.debug(f"Moving to {len(positions)} positions")
+        
+        # 确保查看器已初始化
+        if self.viewer is None:
+            self.good_morning_robot()
+        
+        # 对每个位置执行移动
+        for i in range(len(positions)):
+            # 计算关节角度
+            joint_angles = self.inverse_kinematics(positions[i], orientations[i])
+            
+            # 设置关节角度
+            for j, joint_id in enumerate(self.joint_ids):
+                self.data.qpos[joint_id] = joint_angles[j]
+            
+            # 更新模型
+            mujoco.mj_forward(self.model, self.data)
+            
+            # 更新查看器
+            if self.viewer is not None:
+                self.viewer.sync()
+                time.sleep(0.05)  # 添加延迟以便观察运动
+        
+        self.debug("Movement completed")
+        return True
 
 
 
@@ -855,7 +1085,7 @@ class Cobot280(Robot):
         """
         self.debug_bool = debug
         self.cobot = self.init_cobot(host, port)
-
+        self.current_position = None
 
     def init_cobot(self, host, port):
         """
@@ -915,7 +1145,7 @@ class Cobot280(Robot):
         self.cobot.stop()
         # self.cobot.power_off()
 
-    def go_to_cartesian_pose(self, positions, orientations, move_by_joint=False, speed=50):
+    def go_to_cartesian_pose(self, positions, orientations, move_by_joint=False, speed=80):
         """
         将机器人移动到指定的笛卡尔坐标位置和方向。
 
@@ -936,6 +1166,28 @@ class Cobot280(Robot):
             positions = positions[None, :]
             orientations = orientations[None, :]
 
+        while self.current_position is None or self.current_position == -1:
+            self.current_position = self.cobot.get_coords()
+            logger.info(f"current_position is {self.current_position}")
+            time.sleep(1)
+
+        if len(positions) > 0:
+            logger.info("current_position is {}", self.current_position)
+            item = positions[0]
+            converted_angles = quaternion_to_euler_degrees(orientations[0])
+            # converted_angles[-1] = converted_angles[-1] + 60
+            converted_angles[-1] = 145
+            formated_item = [item[1] * 1000, item[0] * 1000, item[2] * 1000, *converted_angles]
+            y0 = self.current_position[1]
+            y1 = formated_item[1]
+            logger.info("y0 - y1 = {}, move_by_joint: {}", y0 - y1, move_by_joint)
+            if self.current_position is not None and (y0 * y1 < 0 or abs(y0 - y1) > 190):
+                # move to safe position
+                # self.cobot.sync_send_angles([0, -45, 0, 0, 0, -45], 20)
+                middle_point = [233.8, -65.5, 200, -146.72, -29.68, -53.94]
+                self.cobot.send_coords(middle_point, 50, 1)
+                self.current_position = middle_point
+
         for i, item in enumerate(positions):
             # sync_send_coords(coords, speed, mode)
             # item的格式为 [x,y,z,rx,ry,rz]
@@ -952,11 +1204,18 @@ class Cobot280(Robot):
             # if not self.safe_position_check(formated_item):
             #     logger.warning("机械臂超出安全范围，机械臂坐标为：{}", formated_item)
             logger.info(f"formated_item is {[int(x) for x in formated_item]}")
+            # get current pos , if move across y from positive to negative or negative to positive, move to the safe position first
+            self.current_position = formated_item
             if move_by_joint:
                 # 0-非线性（默认），1-直线运动
+                if not self.safe_position_check(formated_item):
+                    logger.warning("机械臂超出安全范围，机械臂坐标为：{}", formated_item)
                 self.cobot.send_coords(formated_item, speed, 0)
             else:
-                self.cobot.send_coords(formated_item, speed, 0)
+
+                self.cobot.send_coords(formated_item, speed, 1)
+            self.current_position = formated_item
+
             # print(self.cobot.get_angles())
 
     def move_to_joint_positions(self, joint_angles, speed=100):
@@ -974,16 +1233,12 @@ class Cobot280(Robot):
         检查item的xyz构成的臂展是否在280mm范围内
         z的范围不能低于10mm
         """
-        # if item[0] < -172 or item[0] > 172 or item[1] < 100 or item[1] > 280:
-        #     # 画布本身限制
-        #     return False
+        if  item[1] < -180:
+            # 绘画中不能触碰墨盒
+            # 画布本身限制
+            return False
         # 机械臂限制
-        dis = np.sqrt(item[0] ** 2 + item[1] ** 2)
-        if dis > 280:
-            return False
-        # z的范围不能低于10mm
-        if item[2] < 60:
-            return False
+
         return True
 
 
@@ -1035,7 +1290,7 @@ def convert_quaternion_to_euler(quaternion):
 
 
 if __name__ == "__main__":
-    mc = Cobot280()
+    mc = SimulatedMyCobot()
     mc.good_morning_robot()
 
     mc.good_night_robot()

@@ -44,7 +44,7 @@ def reload_ndarray_from_json(dir_path):
 if __name__ == '__main__':
     dir_path = r"D:\code\frida\src\caches\small_brush_uarm_mt"
 
-    # save_ndarray_to_json(dir_path)
-    reload_ndarray_from_json(dir_path)
+    save_ndarray_to_json(dir_path)
+    # reload_ndarray_from_json(dir_path)
     # exit(0)
 

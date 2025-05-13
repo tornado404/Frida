@@ -1,6 +1,6 @@
 tqdm
 requests
-getch
+#getch
 packaging
 Pillow==9.5.0
 opencv-python
@@ -11,7 +11,7 @@ matplotlib
 scipy==1.9.1
 protobuf~=3.20
 tsp_solver
-gphoto2==2.5.0
+#gphoto2==2.5.0
 pyrealsense2
 tensorboardX==2.1
 torch 
@@ -24,9 +24,9 @@ regex
 git+https://github.com/openai/CLIP.git
 librosa
 timm
-transformers
 diffusers
 accelerate
 transformers
 whisper
 xarm
+loguru
